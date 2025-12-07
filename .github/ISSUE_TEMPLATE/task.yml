@@ -1,0 +1,90 @@
+---
+name: 🔧 タスク・作業項目
+description: 開発タスクや作業項目の作成
+title: "[Task]: "
+labels: ["task"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        開発タスクや作業項目を記録します。
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: カテゴリ
+      options:
+        - フロントエンド
+        - バックエンド
+        - インフラ・DevOps
+        - データベース
+        - テスト
+        - セキュリティ
+        - パフォーマンス
+        - その他
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: タスクの説明
+      description: 何を行う必要があるか具体的に記載してください
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件（Acceptance Criteria）
+      description: このタスクが完了したとみなす条件を記載してください
+      placeholder: |
+        - [ ] 条件1
+        - [ ] 条件2
+        - [ ] 条件3
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical
+    attributes:
+      label: 技術的な詳細・実装方針
+      description: 実装に関する技術的な詳細やアプローチがあれば記載してください
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - 🔴 Critical（即時対応）
+        - 🟠 High（今スプリント内）
+        - 🟡 Medium（次スプリント）
+        - 🟢 Low（バックログ）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: 見積もり
+      description: 作業時間の概算
+      options:
+        - XS（〜1時間）
+        - S（1〜4時間）
+        - M（4時間〜1日）
+        - L（1〜3日）
+        - XL（3日以上）
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依存関係・ブロッカー
+      description: このタスクを開始/完了するために必要な前提条件や関連Issue
+      placeholder: "例: #123 が完了してから着手"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 補足情報
+      description: その他、関連する情報があれば記載してください

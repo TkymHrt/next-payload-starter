@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 質問・相談
+    url: https://github.com/TkymHrt/next-payload-starter/discussions
+    about: バグ報告や機能リクエスト以外の質問はDiscussionsをご利用ください

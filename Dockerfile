@@ -49,6 +49,9 @@ ENV NODE_ENV production
 COPY --from=builder --chown=nonroot:nonroot /app/public ./public
 COPY --from=builder --chown=nonroot:nonroot /app/media ./media
 
+# Copy migrations for PayloadCMS database migrations
+COPY --from=builder --chown=nonroot:nonroot /app/src/migrations ./src/migrations
+
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nonroot:nonroot /app/.next/standalone ./

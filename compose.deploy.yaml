@@ -1,10 +1,8 @@
-# Production Compose File - Manual/Local Deployment
+# Production Deployment Compose File
 
 services:
   payload:
-    build:
-      context: .
-      target: runner
+    image: ${PAYLOAD_IMAGE:?PAYLOAD_IMAGE is required}
     environment:
       PORT: 3000
       NODE_ENV: production
@@ -13,8 +11,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+    networks:
+      - internal
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -28,6 +28,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - pgdata-prod:/var/lib/postgresql/data
+    networks:
+      - internal
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -42,9 +44,15 @@ services:
     depends_on:
       payload:
         condition: service_started
+    networks:
+      - internal
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge
 
 volumes:
   pgdata-prod:

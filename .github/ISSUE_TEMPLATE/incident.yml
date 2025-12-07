@@ -1,0 +1,85 @@
+---
+name: 🚨 インシデント報告
+description: 本番環境での障害・インシデントの報告
+title: "[Incident]: "
+labels: ["incident", "priority:critical"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **本番環境のインシデント報告用テンプレートです**
+
+        緊急度が高い場合は、Issue作成と並行してSlack等でもチームに連絡してください。
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 重大度
+      options:
+        - P0 - サービス全停止
+        - P1 - 主要機能の障害
+        - P2 - 一部機能の障害
+        - P3 - 軽微な問題
+    validations:
+      required: true
+
+  - type: input
+    id: detected
+    attributes:
+      label: 検知日時
+      description: インシデントを検知した日時
+      placeholder: "例: 2024-01-15 14:30 JST"
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: インシデント概要
+      description: 発生している問題の概要
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影響範囲
+      description: 影響を受けているユーザー数、機能、サービスなど
+    validations:
+      required: true
+
+  - type: textarea
+    id: symptoms
+    attributes:
+      label: 症状・エラー内容
+      description: 観測されている症状やエラーメッセージ
+      render: shell
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: タイムライン
+      description: 発生から現在までの経緯
+      placeholder: |
+        - 14:30 - アラート検知
+        - 14:35 - 調査開始
+        - 14:45 - 原因特定
+
+  - type: textarea
+    id: actions
+    attributes:
+      label: 実施した対応
+      description: これまでに実施した対応や暫定対策
+
+  - type: textarea
+    id: root-cause
+    attributes:
+      label: 根本原因（判明後に記入）
+      description: 根本原因が判明したら記入してください
+
+  - type: textarea
+    id: prevention
+    attributes:
+      label: 再発防止策（解決後に記入）
+      description: 同様のインシデントを防ぐための対策

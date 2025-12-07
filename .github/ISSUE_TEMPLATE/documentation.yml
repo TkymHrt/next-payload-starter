@@ -1,0 +1,54 @@
+---
+name: 📚 ドキュメント改善
+description: ドキュメントの追加・修正の提案
+title: "[Docs]: "
+labels: ["documentation"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ドキュメント改善の提案ありがとうございます！
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: 改善の種類
+      options:
+        - 誤字・脱字の修正
+        - 内容の追加
+        - 内容の更新（古い情報）
+        - 分かりにくい説明の改善
+        - 翻訳
+        - その他
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: 該当箇所
+      description: 改善が必要なドキュメントのパスやURL
+      placeholder: "例: README.md, docs/setup.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: 現在の内容
+      description: 現在のドキュメントの内容（問題がある箇所）
+
+  - type: textarea
+    id: suggested
+    attributes:
+      label: 提案する内容
+      description: どのように改善すべきか具体的に記載してください
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 補足情報
+      description: その他、関連する情報があれば記載してください
