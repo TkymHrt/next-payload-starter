@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["ultracite/core", "ultracite/next"],
+  "files": {
+    "includes": [
+      "**/*",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/build",
+      "!**/dist",
+      "!**/out",
+      "!**/.cache",
+      "!**/coverage",
+      "!**/test-results",
+      "!**/playwright-report",
+      "!**/blob-report",
+      "!**/.git",
+      "!**/.idea",
+      "!**/pnpm-lock.yaml",
+      "!**/package-lock.json",
+      "!**/yarn.lock",
+      "!**/.env",
+      "!**/.env.*",
+      "!**/*.tsbuildinfo",
+      "!**/next-env.d.ts",
+      "!**/src/payload-types.ts",
+      "!**/src/app/(payload)/admin/importMap.js",
+      "!**/media",
+      "!**/.DS_Store",
+      "!**/src/components/ui"
+    ]
+  }
+}
