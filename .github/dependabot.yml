@@ -1,36 +1,93 @@
 # Dependabot configuration
 # Keeps dependencies up to date automatically
+# Optimized for single self-hosted runner to avoid CI overload
 
 version: 2
+
+registries:
+  npm-registry:
+    type: npm-registry
+    url: https://registry.npmjs.org
+    replaces-base: true
 
 updates:
   # npm dependencies
   - package-ecosystem: "npm"
     directory: "/"
+    registries:
+      - npm-registry
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
       timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 10
+    # Limit PRs to reduce CI load on single runner
+    open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
+      include: "scope"
     labels:
       - "dependencies"
       - "npm"
+      - "automerge"
+    reviewers:
+      - "TkymHrt"
     groups:
-      # Group all minor and patch updates together
-      minor-and-patch:
+      # Production dependencies - review carefully
+      production:
+        dependency-type: "production"
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
-      # Keep major updates separate for review
+      # Dev dependencies - can be more aggressive
+      development:
+        dependency-type: "development"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Payload CMS ecosystem - group together
+      payload:
+        patterns:
+          - "@payloadcms/*"
+          - "payload"
+        update-types:
+          - "minor"
+          - "patch"
+      # React/Next.js ecosystem
+      react-next:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "next"
+          - "@types/react*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Testing tools
+      testing:
+        patterns:
+          - "@playwright/*"
+          - "@testing-library/*"
+          - "vitest"
+          - "@vitejs/*"
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
-      # Ignore specific packages if needed
+      # Ignore prereleases
       - dependency-name: "*"
         update-types: ["version-update:semver-prerelease"]
+      # Ignore major updates for critical packages (review manually)
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
@@ -40,13 +97,16 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "ci"
+      include: "scope"
     labels:
       - "dependencies"
       - "github-actions"
+      - "automerge"
     groups:
+      # Group all actions together
       actions:
         patterns:
           - "*"
@@ -55,13 +115,14 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "09:00"
       timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     commit-message:
       prefix: "docker"
+      include: "scope"
     labels:
       - "dependencies"
       - "docker"
