@@ -23,12 +23,12 @@ env:
 
 jobs:
   # ============================================
-  # Code Quality Checks (Lint & Type Check)
+  # Validate: lint, type check, and build in one setup
   # ============================================
-  quality:
-    name: Code Quality
+  validate:
+    name: Validate
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 25
     permissions:
       contents: read
 
@@ -70,50 +70,6 @@ jobs:
 
       - name: TypeScript type check
         run: pnpm exec tsc --noEmit
-
-  # ============================================
-  # Build Check
-  # ============================================
-  build:
-    name: Build Check
-    runs-on: self-hosted
-    timeout-minutes: 20
-    needs: quality
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Build application
         run: pnpm run build

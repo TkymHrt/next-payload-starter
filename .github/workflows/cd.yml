@@ -42,6 +42,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write
 
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
@@ -89,20 +90,48 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=,suffix=,format=short
-
-      - name: Build and push Docker image
+      - name: Build Docker image (load locally for scan)
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           target: runner
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          push: false
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short-sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
+
+      - name: Run Trivy vulnerability scanner
+        id: trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short-sha }}"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Push Docker image
+        if: success()
+        run: |
+          PRIMARY_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short-sha }}"
+          echo "Using primary tag: $PRIMARY_TAG"
+          echo "${{ steps.meta.outputs.tags }}" | while read -r TAG; do
+            if [ -n "$TAG" ]; then
+              docker tag "$PRIMARY_TAG" "$TAG"
+              docker push "$TAG"
+            fi
+          done
 
       # Prevent cache from growing indefinitely
       - name: Move cache
@@ -111,51 +140,13 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   # ============================================
-  # Security Scan
-  # ============================================
-  security-scan:
-    name: Security Scan
-    runs-on: self-hosted
-    timeout-minutes: 15
-    needs: build
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: "${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}"
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH"
-          exit-code: "0"
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: "trivy-results.sarif"
-
-  # ============================================
   # Deploy to Production
   # ============================================
   deploy:
     name: Deploy to Production
     runs-on: self-hosted
     timeout-minutes: 15
-    needs: [build, security-scan]
+    needs: [build]
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
