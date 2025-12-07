@@ -164,6 +164,9 @@ jobs:
       name: production
       url: ${{ vars.PRODUCTION_URL }}
 
+    env:
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/next-payload-starter' }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -178,11 +181,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create deployment directory
-        run: mkdir -p ${{ vars.DEPLOY_PATH }}
+        run: mkdir -p "$DEPLOY_PATH"
 
       - name: Backup current configuration
         run: |
-          cd ${{ vars.DEPLOY_PATH }}
+          cd "$DEPLOY_PATH"
           if [ -f docker-compose.yml ]; then
             cp docker-compose.yml docker-compose.yml.bak
             echo "Backed up docker-compose.yml"
@@ -193,11 +196,11 @@ jobs:
           fi
 
       - name: Copy deployment compose file
-        run: cp compose.deploy.yaml ${{ vars.DEPLOY_PATH }}/docker-compose.yml
+        run: cp compose.deploy.yaml "$DEPLOY_PATH"/docker-compose.yml
 
       - name: Create .env file for deployment
         run: |
-          cat > ${{ vars.DEPLOY_PATH }}/.env << 'EOF'
+          cat > "$DEPLOY_PATH"/.env << 'EOF'
           # Application
           DATABASE_URI=${{ secrets.DATABASE_URI }}
           PAYLOAD_SECRET=${{ secrets.PAYLOAD_SECRET }}
@@ -216,19 +219,19 @@ jobs:
 
       - name: Pull latest images
         run: |
-          cd ${{ vars.DEPLOY_PATH }}
+          cd "$DEPLOY_PATH"
           docker compose pull
 
       - name: Deploy application
         run: |
-          cd ${{ vars.DEPLOY_PATH }}
+          cd "$DEPLOY_PATH"
           # Stop old containers and start new ones
           docker compose down --remove-orphans
           docker compose up -d
 
       - name: Wait for application to be ready
         run: |
-          cd ${{ vars.DEPLOY_PATH }}
+          cd "$DEPLOY_PATH"
           echo "Waiting for application to start..."
           sleep 10
 
@@ -260,13 +263,13 @@ jobs:
         if: success()
         run: |
           echo "✅ Deployment successful!"
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.short-sha }}"
+          echo "Image: ${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}"
           echo "Environment: production"
 
       - name: Rollback on failure
         if: failure()
         run: |
-          cd ${{ vars.DEPLOY_PATH }}
+          cd "$DEPLOY_PATH"
           echo "⚠️ Deployment failed, attempting rollback..."
 
           # Restore from backup if available
