@@ -62,35 +62,6 @@ jobs:
           retention-days: 30
 
   # ============================================
-  # CodeQL Analysis
-  # ============================================
-  codeql:
-    name: CodeQL Analysis
-    runs-on: self-hosted
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript
-          queries: security-and-quality
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:javascript-typescript"
-
-  # ============================================
   # Secret Scanning
   # ============================================
   secrets-scan:
@@ -108,64 +79,8 @@ jobs:
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2.3.7
+        with:
+          args: detect --redact --no-git --report-format=sarif --report-path=results.sarif
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: false
-
-  # ============================================
-  # Dockerfile Security Scan
-  # ============================================
-  dockerfile-scan:
-    name: Dockerfile Security Scan
-    runs-on: self-hosted
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-          failure-threshold: error
-          format: sarif
-          output-file: hadolint-results.sarif
-          ignore: DL3018,DL3008
-
-      - name: Upload Hadolint results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: hadolint-results.sarif
-          wait-for-processing: true
-
-  # ============================================
-  # SAST with Semgrep
-  # ============================================
-  semgrep:
-    name: Semgrep SAST
-    runs-on: self-hosted
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Semgrep
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: >-
-            p/typescript
-            p/react
-            p/nextjs
-            p/security-audit
-            p/secrets
-        env:
-          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}

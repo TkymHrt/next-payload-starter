@@ -41,13 +41,13 @@ RUN \
 FROM gcr.io/distroless/nodejs24-debian13 AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
-# Remove this line if you do not have this folder
-COPY --from=builder --chown=nonroot:nonroot /app/public ./public
-COPY --from=builder --chown=nonroot:nonroot /app/media ./media
+# Bring static assets directly from the build context so the final image does not depend on builder outputs
+COPY --chown=nonroot:nonroot public ./public
+COPY --chown=nonroot:nonroot media ./media
 
 # Copy migrations for PayloadCMS database migrations
 COPY --from=builder --chown=nonroot:nonroot /app/src/migrations ./src/migrations
@@ -61,7 +61,7 @@ USER nonroot
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
