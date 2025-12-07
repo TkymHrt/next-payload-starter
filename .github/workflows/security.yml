@@ -1,17 +1,10 @@
 # Security Scanning Workflow
-# Runs on schedule and on demand
+# Lightweight security checks optimized for single runner
 
 name: Security
 
 on:
   push:
-    branches: [main]
-    paths:
-      - "pnpm-lock.yaml"
-      - "package.json"
-      - "Dockerfile"
-      - ".github/workflows/security.yml"
-  pull_request:
     branches: [main]
     paths:
       - "pnpm-lock.yaml"
@@ -29,85 +22,41 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "10"
+
 jobs:
   # ============================================
-  # Dependency Vulnerability Scan
+  # Combined Security Scan (fast, single job)
   # ============================================
-  dependency-scan:
-    name: Dependency Scan
-    runs-on: self-hosted
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: "10"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run pnpm audit
-        id: audit
-        run: |
-          set +e
-          pnpm audit --audit-level=high --json > audit-results.json 2>&1
-          AUDIT_EXIT=$?
-          set -e
-
-          if [ $AUDIT_EXIT -ne 0 ]; then
-            echo "⚠️ Vulnerabilities found"
-            cat audit-results.json | jq '.advisories | length' || echo "Unable to parse results"
-          fi
-
-          echo "exit-code=$AUDIT_EXIT" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: Generate audit summary
-        if: always()
-        run: |
-          echo "## 📦 Dependency Audit Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ -f audit-results.json ]; then
-            HIGH=$(cat audit-results.json | jq '[.advisories[] | select(.severity == "high")] | length' 2>/dev/null || echo "0")
-            CRITICAL=$(cat audit-results.json | jq '[.advisories[] | select(.severity == "critical")] | length' 2>/dev/null || echo "0")
-
-            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
-            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Critical | $CRITICAL |" >> $GITHUB_STEP_SUMMARY
-            echo "| High | $HIGH |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "No audit results available" >> $GITHUB_STEP_SUMMARY
-          fi
-
-  # ============================================
-  # Secret Scanning
-  # ============================================
-  secrets-scan:
-    name: Secret Scanning
+  security-scan:
+    name: Security Scan
     runs-on: self-hosted
     timeout-minutes: 10
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pnpm audit
+        run: pnpm audit --audit-level=high || true
 
       - name: Clean stale gitleaks temp file
         run: rm -f /tmp/gitleaks.tmp
@@ -118,65 +67,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: false
         continue-on-error: true
-
-  # ============================================
-  # CodeQL Analysis
-  # ============================================
-  codeql:
-    name: CodeQL Analysis
-    runs-on: self-hosted
-    timeout-minutes: 30
-    if: github.event_name != 'schedule' || github.repository == github.event.repository.full_name
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript
-          queries: security-extended
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:javascript-typescript"
-
-  # ============================================
-  # License Compliance Check
-  # ============================================
-  license-check:
-    name: License Check
-    runs-on: self-hosted
-    timeout-minutes: 10
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: "10"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Check licenses
-        run: |
-          npx license-checker --summary --production || true

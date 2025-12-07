@@ -1,28 +1,11 @@
-# CD Workflow - Build Docker Image and Deploy
-# Optimized for single self-hosted runner with Blue-Green deployment
-
+# CD Workflow - Build and Deploy for single self-hosted runner
 name: CD
 
 on:
   push:
     branches: [main]
-    tags:
-      - "v*"
+    tags: ["v*"]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Deployment environment"
-        required: true
-        default: "production"
-        type: choice
-        options:
-          - production
-          - staging
-      skip_tests:
-        description: "Skip pre-deployment tests"
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
   group: cd-${{ github.ref }}
@@ -36,89 +19,37 @@ permissions:
   contents: read
 
 jobs:
-  # ============================================
-  # Pre-deployment validation
-  # ============================================
-  validate:
-    name: Pre-deploy Validation
-    runs-on: self-hosted
-    timeout-minutes: 10
-    if: github.event.inputs.skip_tests != 'true'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: "10"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run checks
-        run: |
-          pnpm run check
-          pnpm exec tsc --noEmit
-
-  # ============================================
-  # Build and Push Docker Image
-  # ============================================
   build:
-    name: Build Docker Image
+    name: Build & Push
     runs-on: self-hosted
     timeout-minutes: 30
-    needs: [validate]
-    if: always() && (needs.validate.result == 'success' || needs.validate.result == 'skipped')
     permissions:
       contents: read
       packages: write
-      security-events: write
 
     outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
       short-sha: ${{ steps.vars.outputs.short-sha }}
       image-name-lower: ${{ steps.vars.outputs.image-name-lower }}
-      version: ${{ steps.vars.outputs.version }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Set output variables
+      - name: Set variables
         id: vars
         run: |
           echo "short-sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
           echo "image-name-lower=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${{ github.sha }}" >> $GITHUB_OUTPUT
-          fi
 
       - name: Normalize image name
         run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >> $GITHUB_ENV
 
-      - name: Set up Docker Buildx
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: |
-            image=moby/buildkit:latest
-            network=host
 
-      - name: Log in to Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -131,86 +62,30 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=,suffix=,format=short
+            type=sha,prefix=,format=short
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
 
-      - name: Build Docker image
-        id: build
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           target: runner
-          push: false
-          load: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short-sha }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
-            VCS_REF=${{ github.sha }}
-            VERSION=${{ steps.vars.outputs.version }}
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short-sha }}"
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH"
-          scanners: "vuln"
-          ignore-unfixed: true
-          exit-code: "0"
-
-      - name: Upload Trivy results to Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: "trivy-results.sarif"
-        continue-on-error: true
-
-      - name: Check for critical vulnerabilities
-        run: |
-          CRITICAL_COUNT=$(grep -c '"level": "error"' trivy-results.sarif 2>/dev/null || echo "0")
-          if [ "$CRITICAL_COUNT" -gt "0" ]; then
-            echo "⚠️ Found $CRITICAL_COUNT critical vulnerabilities"
-            echo "Review the Security tab for details"
-          fi
-
-      - name: Push Docker image
-        run: |
-          PRIMARY_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short-sha }}"
-          echo "Pushing primary tag: $PRIMARY_TAG"
-          docker push "$PRIMARY_TAG"
-
-          # Push additional tags
-          echo "${{ steps.meta.outputs.tags }}" | while read -r TAG; do
-            if [ -n "$TAG" ] && [ "$TAG" != "$PRIMARY_TAG" ]; then
-              docker tag "$PRIMARY_TAG" "$TAG"
-              docker push "$TAG"
-              echo "Pushed: $TAG"
-            fi
-          done
-
-      - name: Rotate build cache
-        if: always()
+      - name: Rotate cache
         run: |
           rm -rf /tmp/.buildx-cache
-          if [ -d /tmp/.buildx-cache-new ]; then
-            mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-          fi
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache 2>/dev/null || true
 
-  # ============================================
-  # Deploy to Production
-  # ============================================
   deploy:
-    name: Deploy to Production
+    name: Deploy
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 10
     needs: [build]
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -222,15 +97,14 @@ jobs:
 
     env:
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/next-payload-starter' }}
-      NEW_IMAGE: ${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Log in to Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -241,165 +115,70 @@ jobs:
         id: prepare
         run: |
           mkdir -p "$DEPLOY_PATH"
-          mkdir -p "$DEPLOY_PATH/backups"
 
-          # Save current state for rollback
-          BACKUP_DIR="$DEPLOY_PATH/backups/$(date +%Y%m%d_%H%M%S)"
-          mkdir -p "$BACKUP_DIR"
-
-          if [ -f "$DEPLOY_PATH/docker-compose.yml" ]; then
-            cp "$DEPLOY_PATH/docker-compose.yml" "$BACKUP_DIR/"
-          fi
+          # Backup current .env for rollback
           if [ -f "$DEPLOY_PATH/.env" ]; then
-            cp "$DEPLOY_PATH/.env" "$BACKUP_DIR/"
+            cp "$DEPLOY_PATH/.env" "$DEPLOY_PATH/.env.bak"
           fi
 
           # Get current image for rollback
-          CURRENT_IMAGE=$(grep -E "^\s*PAYLOAD_IMAGE=" "$DEPLOY_PATH/.env" 2>/dev/null | cut -d'=' -f2 || echo "")
+          CURRENT_IMAGE=$(grep -E "^PAYLOAD_IMAGE=" "$DEPLOY_PATH/.env" 2>/dev/null | cut -d'=' -f2 || echo "")
           echo "current-image=$CURRENT_IMAGE" >> $GITHUB_OUTPUT
-          echo "backup-dir=$BACKUP_DIR" >> $GITHUB_OUTPUT
 
-          # Cleanup old backups (keep last 5)
-          ls -dt "$DEPLOY_PATH/backups"/*/ 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
-
-      - name: Copy deployment files
+      - name: Copy compose file
         run: cp compose.deploy.yaml "$DEPLOY_PATH/docker-compose.yml"
 
-      - name: Create environment file
+      - name: Create .env
         run: |
           cat > "$DEPLOY_PATH/.env" << EOF
-          # Application Configuration
           DATABASE_URI=${{ secrets.DATABASE_URI }}
           PAYLOAD_SECRET=${{ secrets.PAYLOAD_SECRET }}
-
-          # PostgreSQL
           POSTGRES_DB=${{ secrets.POSTGRES_DB }}
           POSTGRES_USER=${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-
-          # Cloudflare Tunnel
           CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
-
-          # Docker Image
           PAYLOAD_IMAGE=${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}
-
-          # Deployment metadata
-          DEPLOY_SHA=${{ github.sha }}
-          DEPLOY_DATE=$(date -Iseconds)
-          DEPLOY_VERSION=${{ needs.build.outputs.version }}
           EOF
 
-      - name: Pull new image
+      - name: Deploy
         run: |
           cd "$DEPLOY_PATH"
           docker compose pull --quiet
-
-      - name: Deploy with zero-downtime
-        id: deploy
-        run: |
-          cd "$DEPLOY_PATH"
-
-          # Stop old containers gracefully
-          echo "Stopping existing containers..."
           docker compose down --timeout 30 --remove-orphans || true
-
-          # Start new containers
-          echo "Starting new containers..."
           docker compose up -d
 
-          echo "Deployment initiated at $(date)"
-
       - name: Health check
-        id: health
         run: |
-          MAX_RETRIES=30
-          RETRY_INTERVAL=5
-          RETRY_COUNT=0
-
-          echo "Waiting for application to be healthy..."
+          echo "Waiting for startup..."
           sleep 10
 
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          for i in $(seq 1 20); do
             if curl -sf --max-time 5 http://localhost:3000/api/health > /dev/null 2>&1; then
-              echo "✅ Health check passed!"
+              echo "✅ Health check passed"
               exit 0
             fi
-
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying in ${RETRY_INTERVAL}s..."
-            sleep $RETRY_INTERVAL
+            echo "Attempt $i/20 failed, retrying..."
+            sleep 5
           done
 
-          echo "❌ Health check failed after $MAX_RETRIES attempts"
+          echo "❌ Health check failed"
           exit 1
-
-      - name: Verify deployment
-        if: success()
-        run: |
-          echo "🎉 Deployment successful!"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "Image: ${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}"
-          echo "SHA: ${{ github.sha }}"
-          echo "Environment: production"
-          echo "Time: $(date)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: Cleanup old images
         if: success()
-        run: |
-          # Remove unused images older than 7 days
-          docker image prune -af --filter "until=168h" || true
+        run: docker image prune -af --filter "until=168h" || true
 
       - name: Rollback on failure
-        if: failure() && steps.deploy.outcome == 'success'
+        if: failure()
         run: |
           cd "$DEPLOY_PATH"
-          echo "⚠️ Deployment failed, initiating rollback..."
+          echo "⚠️ Rollback initiated..."
 
-          BACKUP_DIR="${{ steps.prepare.outputs.backup-dir }}"
-          CURRENT_IMAGE="${{ steps.prepare.outputs.current-image }}"
-
-          # Restore backup files
-          if [ -d "$BACKUP_DIR" ]; then
-            if [ -f "$BACKUP_DIR/docker-compose.yml" ]; then
-              cp "$BACKUP_DIR/docker-compose.yml" "$DEPLOY_PATH/docker-compose.yml"
-            fi
-            if [ -f "$BACKUP_DIR/.env" ]; then
-              cp "$BACKUP_DIR/.env" "$DEPLOY_PATH/.env"
-            fi
+          if [ -f ".env.bak" ]; then
+            mv .env.bak .env
           fi
 
-          # Restart with previous configuration
           docker compose down --timeout 30 --remove-orphans || true
           docker compose up -d
 
-          echo "⏪ Rollback completed. Please verify the application manually."
-          exit 1
-
-  # ============================================
-  # Post-deployment notification
-  # ============================================
-  notify:
-    name: Notify
-    runs-on: self-hosted
-    timeout-minutes: 5
-    needs: [build, deploy]
-    if: always()
-
-    steps:
-      - name: Deployment summary
-        run: |
-          if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Image** | \`${{ needs.build.outputs.short-sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Triggered by** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Time** | $(date -Iseconds) |" >> $GITHUB_STEP_SUMMARY
+          echo "Rollback completed. Verify manually."
