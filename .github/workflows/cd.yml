@@ -47,6 +47,7 @@ jobs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-digest: ${{ steps.build.outputs.digest }}
       short-sha: ${{ steps.vars.outputs.short-sha }}
+      image-name-lower: ${{ steps.vars.outputs.image-name-lower }}
 
     steps:
       - name: Checkout repository
@@ -56,7 +57,12 @@ jobs:
 
       - name: Set output variables
         id: vars
-        run: echo "short-sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+        run: |
+          echo "short-sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          echo "image-name-lower=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
+
+      - name: Normalize image name to lowercase for GHCR
+        run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -130,14 +136,14 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.short-sha }}"
+          image-ref: "${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}"
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "0"
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
@@ -205,7 +211,7 @@ jobs:
           CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
 
           # Docker Image
-          PAYLOAD_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.short-sha }}
+          PAYLOAD_IMAGE=${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}
           EOF
 
       - name: Pull latest images

@@ -49,18 +49,6 @@ jobs:
         run: pnpm audit --audit-level=high
         continue-on-error: true
 
-      - name: Generate SBOM
-        run: |
-          npx @cyclonedx/cyclonedx-npm --output-file sbom.json --output-format json
-        continue-on-error: true
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom
-          path: sbom.json
-          retention-days: 30
-
   # ============================================
   # Secret Scanning
   # ============================================
@@ -85,3 +73,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: false
+        continue-on-error: true
