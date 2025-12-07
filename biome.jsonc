@@ -27,7 +27,20 @@
       "!**/src/app/(payload)/admin/importMap.js",
       "!**/media",
       "!**/.DS_Store",
-      "!**/src/components/ui"
+      "!**/src/components/ui",
+      "!**/src/migrations"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/collections/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    }
+  ]
 }

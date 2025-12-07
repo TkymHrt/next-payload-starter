@@ -1,13 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
-  "packages": [
-    "nodejs@24.11.1",
-    "pnpm@10.24.0"
-  ],
+  "packages": ["nodejs@24.11.1", "pnpm@10.24.0"],
   "shell": {
-    "init_hook": [
-      "echo 'Welcome to devbox!' > /dev/null"
-    ],
+    "init_hook": ["echo 'Welcome to devbox!' > /dev/null"],
     "scripts": {
       "dev:db": "docker compose up -d postgres",
       "dev:db:stop": "docker compose down",
