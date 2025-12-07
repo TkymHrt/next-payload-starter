@@ -5,7 +5,7 @@
       "last_modified": "2025-12-05T15:03:55Z",
       "resolved": "github:NixOS/nixpkgs/a672be65651c80d3f592a89b3945466584a22069?lastModified=1764947035"
     },
-    "nodejs@24": {
+    "nodejs@24.11.1": {
       "last_modified": "2025-12-01T17:53:29Z",
       "plugin_version": "0.0.2",
       "resolved": "github:NixOS/nixpkgs/8c29968b3a942f2903f90797f9623737c215737c#nodejs_24",
@@ -86,7 +86,7 @@
         }
       }
     },
-    "pnpm@latest": {
+    "pnpm@10.24.0": {
       "last_modified": "2025-11-28T17:56:46Z",
       "resolved": "github:NixOS/nixpkgs/24e915b36ca87d32777d766da3a3f4e3ce22cc98#pnpm",
       "source": "devbox-search",
