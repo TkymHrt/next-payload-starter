@@ -25,22 +25,18 @@ permissions:
 env:
   NODE_VERSION: "24"
   PNPM_VERSION: "10"
-  RUNNER_LABELS: '["self-hosted","linux","x64","proxmox","ci"]'
 
 jobs:
-  # ============================================
-  # Combined Security Scan (fast, single job)
-  # ============================================
   security-scan:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, proxmox, ci]
     timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

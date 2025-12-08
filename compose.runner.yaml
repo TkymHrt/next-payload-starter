@@ -17,11 +17,11 @@ services:
       LABELS: self-hosted,linux,x64,proxmox,ci,builder
       RUNNER_WORKDIR: /tmp/runner/work
       EPHEMERAL: "true"
-      RUNNER_GROUP: Default
+      DISABLE_AUTO_UPDATE: "true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     tmpfs:
-      - /tmp/runner/work:exec,size=2G
+      - /tmp/runner/work:exec,size=4G
 
   runner-deploy:
     image: myoung34/github-runner:latest
@@ -34,9 +34,9 @@ services:
       LABELS: self-hosted,linux,x64,proxmox,deploy
       RUNNER_WORKDIR: /tmp/runner/work
       EPHEMERAL: "true"
-      RUNNER_GROUP: Default
+      DISABLE_AUTO_UPDATE: "true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${DEPLOY_PATH:-/opt/next-payload-starter}:${DEPLOY_PATH:-/opt/next-payload-starter}:rw
     tmpfs:
-      - /tmp/runner/work:exec,size=2G
+      - /tmp/runner/work:exec,size=1G

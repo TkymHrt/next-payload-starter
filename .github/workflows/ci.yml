@@ -7,7 +7,6 @@ on:
   pull_request:
     branches: [main, develop]
 
-# 同じブランチの古いCIはキャンセル（並列Runnerでも効率的に）
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -18,16 +17,14 @@ permissions:
 env:
   NODE_VERSION: "24"
   PNPM_VERSION: "10"
-  RUNNER_LABELS: '["self-hosted","linux","x64","proxmox","ci"]'
 
 jobs:
-  # ============================================
-  # Lint & Type Check（軽量、先に実行）
-  # ============================================
-  lint:
-    name: Lint & Type Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  setup:
+    name: Setup
+    runs-on: [self-hosted, linux, x64, proxmox, ci]
+    timeout-minutes: 5
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-hit }}
 
     steps:
       - name: Checkout
@@ -46,8 +43,44 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
+      - name: Cache dependencies
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
+
+  lint:
+    name: Lint & Type Check
+    runs-on: [self-hosted, linux, x64, proxmox, ci]
+    timeout-minutes: 10
+    needs: setup
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Lint & Format check
         run: pnpm run check
@@ -55,14 +88,11 @@ jobs:
       - name: Type check
         run: pnpm exec tsc --noEmit
 
-  # ============================================
-  # Build（並列実行可能）
-  # ============================================
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, proxmox, ci, builder]
     timeout-minutes: 15
-    # lint と並列実行（needs を指定しない）
+    needs: setup
 
     steps:
       - name: Checkout
@@ -79,10 +109,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Restore dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Build
         run: pnpm run build

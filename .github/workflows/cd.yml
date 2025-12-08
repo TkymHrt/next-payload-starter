@@ -11,7 +11,6 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
-# デプロイは同時実行を防ぐが、ビルドは並列可能
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -19,19 +18,14 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  RUNNER_LABELS_BUILD: '["self-hosted","linux","x64","proxmox","ci","builder"]'
-  RUNNER_LABELS_DEPLOY: '["self-hosted","linux","x64","proxmox","deploy"]'
 
 permissions:
   contents: read
 
 jobs:
-  # ============================================
-  # ビルドジョブ（並列Runner対応）
-  # ============================================
   build:
     name: Build & Push
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, proxmox, ci, builder]
     timeout-minutes: 30
     if: |
       github.event_name == 'workflow_dispatch' ||
@@ -105,12 +99,9 @@ jobs:
         run: |
           echo "✅ Built and pushed: ${{ steps.vars.outputs.image-tag }}"
 
-  # ============================================
-  # デプロイジョブ（排他制御）
-  # ============================================
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, proxmox, deploy]
     timeout-minutes: 15
     needs: [build]
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
@@ -125,19 +116,6 @@ jobs:
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/next-payload-starter' }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # ファイルロックでデプロイの排他制御
       - name: Acquire deploy lock
         id: lock
         run: |
@@ -161,12 +139,18 @@ jobs:
           echo "lock-acquired=true" >> $GITHUB_OUTPUT
           echo "lock-file=$LOCK_FILE" >> $GITHUB_OUTPUT
 
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            compose.deploy.yaml
+
       - name: Prepare deployment
         run: |
           mkdir -p "$DEPLOY_PATH"
           chmod 700 "$DEPLOY_PATH"
 
-          # Backup current .env for rollback
           if [ -f "$DEPLOY_PATH/.env" ]; then
             cp "$DEPLOY_PATH/.env" "$DEPLOY_PATH/.env.bak"
             CURRENT_IMAGE=$(grep "PAYLOAD_IMAGE=" "$DEPLOY_PATH/.env" | cut -d'=' -f2 || echo "")
@@ -175,11 +159,8 @@ jobs:
             fi
           fi
 
-      - name: Copy compose file
-        run: cp compose.deploy.yaml "$DEPLOY_PATH/docker-compose.yml"
+          cp compose.deploy.yaml "$DEPLOY_PATH/docker-compose.yml"
 
-      - name: Create .env
-        run: |
           touch "$DEPLOY_PATH/.env"
           chmod 600 "$DEPLOY_PATH/.env"
 
