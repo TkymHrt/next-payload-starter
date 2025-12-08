@@ -4,6 +4,15 @@ import { withPayload } from "@payloadcms/next/withPayload";
 const nextConfig = {
   // Your Next.js config here
   output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "raw.githubusercontent.com",
+        pathname: "/**",
+      },
+    ],
+  },
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {
       ".cjs": [".cts", ".cjs"],
