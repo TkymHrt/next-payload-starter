@@ -126,12 +126,12 @@ jobs:
       - name: Create .env
         run: |
           cat > "$DEPLOY_PATH/.env" << 'EOF'
-          DATABASE_URI=${{ secrets.DATABASE_URI }}
-          PAYLOAD_SECRET=${{ secrets.PAYLOAD_SECRET }}
-          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+          DATABASE_URI=${{ secrets.DATABASE_URI || vars.DATABASE_URI }}
+          PAYLOAD_SECRET=${{ secrets.PAYLOAD_SECRET || vars.PAYLOAD_SECRET }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD || vars.POSTGRES_PASSWORD }}
+          CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN || vars.CLOUDFLARE_TUNNEL_TOKEN }}
           PAYLOAD_IMAGE=${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}
           EOF
           # Remove leading whitespace from .env file
@@ -139,7 +139,7 @@ jobs:
 
           # Debug: show .env contents (without secrets)
           echo "=== .env file created ==="
-          cat "$DEPLOY_PATH/.env" | sed 's/=.*/=***/'
+          cat "$DEPLOY_PATH/.env" | sed 's/=.*/=***'/
 
       - name: Deploy
         run: |
