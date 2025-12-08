@@ -1,16 +1,11 @@
-# Self-hosted Runner Compose (DooD)
-# Bring up CI/builder and deploy runners on Proxmox
-# Usage:
-#   REPO_URL=https://github.com/OWNER/REPO \
-#   ACCESS_TOKEN=ghp_xxx \
-#   docker compose -f compose.runner.yaml up -d
-
 services:
   runner-ci-builder:
     image: myoung34/github-runner:latest
     restart: unless-stopped
+    deploy:
+      replicas: 5
     environment:
-      RUNNER_NAME: ${RUNNER_NAME_CI:-proxmox-runner-ci}
+      RUNNER_NAME_PREFIX: ${RUNNER_NAME_CI:-proxmox-runner-ci}
       RUNNER_SCOPE: repo
       REPO_URL: ${REPO_URL:?REPO_URL is required}
       ACCESS_TOKEN: ${ACCESS_TOKEN:?ACCESS_TOKEN is required}
@@ -26,6 +21,8 @@ services:
   runner-deploy:
     image: myoung34/github-runner:latest
     restart: unless-stopped
+    deploy:
+      replicas: 1
     environment:
       RUNNER_NAME: ${RUNNER_NAME_DEPLOY:-proxmox-runner-deploy}
       RUNNER_SCOPE: repo
