@@ -19,7 +19,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN \
   if [ -f yarn.lock ]; then yarn run build; \
@@ -28,22 +28,6 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-FROM gcr.io/distroless/nodejs24-debian13 AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV PORT=3000
-
-COPY --from=builder --chown=nonroot:nonroot /app/public ./public
-COPY --from=builder --chown=nonroot:nonroot /app/media ./media
-
-COPY --from=builder --chown=nonroot:nonroot /app/src/migrations ./src/migrations
-
-COPY --from=builder --chown=nonroot:nonroot /app/.next/standalone ./
-COPY --from=builder --chown=nonroot:nonroot /app/.next/static ./.next/static
-
-COPY --chown=nonroot:nonroot --from=builder /app/package.json ./
 RUN echo 'const http = require("http"); \
 const options = { \
   host: "localhost", \
@@ -63,7 +47,24 @@ request.on("error", (err) => { \
   console.log("ERROR: " + err.message); \
   process.exit(1); \
 }); \
-request.end();' > /app/healthcheck.js
+request.end();' > healthcheck.js
+
+FROM gcr.io/distroless/nodejs24-debian13 AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+
+COPY --from=builder --chown=nonroot:nonroot /app/public ./public
+COPY --from=builder --chown=nonroot:nonroot /app/media ./media
+
+COPY --from=builder --chown=nonroot:nonroot /app/src/migrations ./src/migrations
+
+COPY --from=builder --chown=nonroot:nonroot /app/.next/standalone ./
+COPY --from=builder --chown=nonroot:nonroot /app/.next/static ./.next/static
+
+COPY --from=builder --chown=nonroot:nonroot /app/healthcheck.js ./
 
 USER nonroot
 
