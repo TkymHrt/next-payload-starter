@@ -2,6 +2,10 @@
 name: CD
 
 on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
     tags: ["v*"]
@@ -22,6 +26,20 @@ permissions:
   contents: read
 
 jobs:
+  # ============================================
+  # CI成功確認
+  # ============================================
+  check-ci:
+    name: Check CI Status
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+
+    steps:
+      - name: CI failed
+        run: |
+          echo "❌ CI workflow failed. Aborting CD."
+          exit 1
+
   # ============================================
   # ビルドジョブ（並列Runner対応）
   # ============================================
