@@ -203,6 +203,13 @@ fi
 ./config.sh --name "proxmox-runner-02" --labels "self-hosted,linux,x64,proxmox"
 ```
 
+### 推奨ラベル構成（2 台運用）
+
+- **CI/Build 用**: `self-hosted,linux,x64,proxmox,ci,builder`（lint, type-check, docker build を担当）
+- **Deploy 用**: `self-hosted,linux,x64,proxmox,deploy`（本番 compose 操作用。Docker ソケットとデプロイパスへのアクセス権必須）
+
+> 既存の Runner にラベルを追加する場合は `./config.sh remove` → `./config.sh --replace` を使用してください。ラベルが揃っていないとワークフローが Runner を検出できずに待ち状態になります。
+
 ## 📝 GitHub Secrets 設定
 
 リポジトリの Settings > Secrets and variables > Actions で以下を設定：

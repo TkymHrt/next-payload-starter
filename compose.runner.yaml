@@ -1,16 +1,20 @@
-# Self-hosted Runner Compose File (DooD)
-# ex: docker compose -f compose.runner.yaml up -d --scale runner=2
+# Self-hosted Runner Compose (DooD)
+# Bring up CI/builder and deploy runners on Proxmox
+# Usage:
+#   REPO_URL=https://github.com/OWNER/REPO \
+#   ACCESS_TOKEN=ghp_xxx \
+#   docker compose -f compose.runner.yaml up -d
 
 services:
-  runner:
+  runner-ci-builder:
     image: myoung34/github-runner:latest
     restart: unless-stopped
     environment:
-      RUNNER_NAME: ${RUNNER_NAME:-proxmox-runner}
+      RUNNER_NAME: ${RUNNER_NAME_CI:-proxmox-runner-ci}
       RUNNER_SCOPE: repo
       REPO_URL: ${REPO_URL:?REPO_URL is required}
       ACCESS_TOKEN: ${ACCESS_TOKEN:?ACCESS_TOKEN is required}
-      LABELS: self-hosted,linux,x64
+      LABELS: self-hosted,linux,x64,proxmox,ci,builder
       RUNNER_WORKDIR: /tmp/runner/work
       EPHEMERAL: "true"
       RUNNER_GROUP: Default
@@ -19,5 +23,20 @@ services:
     tmpfs:
       - /tmp/runner/work:exec,size=2G
 
-volumes:
-  runner-work:
+  runner-deploy:
+    image: myoung34/github-runner:latest
+    restart: unless-stopped
+    environment:
+      RUNNER_NAME: ${RUNNER_NAME_DEPLOY:-proxmox-runner-deploy}
+      RUNNER_SCOPE: repo
+      REPO_URL: ${REPO_URL:?REPO_URL is required}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:?ACCESS_TOKEN is required}
+      LABELS: self-hosted,linux,x64,proxmox,deploy
+      RUNNER_WORKDIR: /tmp/runner/work
+      EPHEMERAL: "true"
+      RUNNER_GROUP: Default
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DEPLOY_PATH:-/opt/next-payload-starter}:${DEPLOY_PATH:-/opt/next-payload-starter}:rw
+    tmpfs:
+      - /tmp/runner/work:exec,size=2G
