@@ -1,4 +1,9 @@
 # Self-hosted Runner Compose File (DooD方式)
+# 並列ジョブ実行のため複数のRunnerを起動可能
+#
+# 使用方法:
+#   1台: docker compose -f compose.runner.yaml up -d
+#   複数: docker compose -f compose.runner.yaml up -d --scale runner=2
 
 services:
   runner:
@@ -11,11 +16,12 @@ services:
       ACCESS_TOKEN: ${ACCESS_TOKEN:?ACCESS_TOKEN is required}
       LABELS: self-hosted,linux,x64
       RUNNER_WORKDIR: /tmp/runner/work
-      EPHEMERAL: "false"
+      EPHEMERAL: "true"
       RUNNER_GROUP: Default
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - runner-work:/tmp/runner/work
+    tmpfs:
+      - /tmp/runner/work:exec,size=2G
 
 volumes:
   runner-work:
