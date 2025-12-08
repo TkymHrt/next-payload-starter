@@ -164,7 +164,7 @@ jobs:
           chmod 600 "$DEPLOY_PATH/.env"
 
           cat > "$DEPLOY_PATH/.env" << 'ENVEOF'
-          DATABASE_URI=${{ secrets.DATABASE_URI || vars.DATABASE_URI }}
+          DATABASE_URI=postgres://${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD || vars.POSTGRES_PASSWORD }}@postgres:5432/${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}
           PAYLOAD_SECRET=${{ secrets.PAYLOAD_SECRET || vars.PAYLOAD_SECRET }}
           POSTGRES_DB=${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}
           POSTGRES_USER=${{ secrets.POSTGRES_USER || vars.POSTGRES_USER }}
