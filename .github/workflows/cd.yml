@@ -27,26 +27,16 @@ permissions:
 
 jobs:
   # ============================================
-  # CI成功確認
-  # ============================================
-  check-ci:
-    name: Check CI Status
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
-
-    steps:
-      - name: CI failed
-        run: |
-          echo "❌ CI workflow failed. Aborting CD."
-          exit 1
-
-  # ============================================
   # ビルドジョブ（並列Runner対応）
   # ============================================
   build:
     name: Build & Push
     runs-on: ${{ fromJSON(env.RUNNER_LABELS_BUILD) }}
     timeout-minutes: 30
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     permissions:
       contents: read
       packages: write
