@@ -18,7 +18,7 @@ services:
       - internal
     restart: unless-stopped
     healthcheck:
-      test: [["CMD", "nodejs", "/app/healthcheck.js"]
+      test: ["CMD", "node", "/app/healthcheck.js"]
       interval: 10s
       timeout: 5s
       retries: 5
