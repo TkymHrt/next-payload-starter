@@ -3,6 +3,7 @@
 services:
   payload:
     image: ${PAYLOAD_IMAGE:?PAYLOAD_IMAGE is required}
+    privileged: true
     environment:
       PORT: 3000
       NODE_ENV: production
@@ -19,6 +20,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    privileged: true
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
@@ -36,6 +38,7 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
+    privileged: true
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN is required}
     depends_on:
       payload:
