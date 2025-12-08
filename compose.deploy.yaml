@@ -3,7 +3,7 @@
 services:
   payload:
     image: ${PAYLOAD_IMAGE:?PAYLOAD_IMAGE is required}
-    privileged: true
+    init: true
     environment:
       PORT: 3000
       NODE_ENV: production
@@ -17,11 +17,17 @@ services:
     networks:
       - internal
     restart: unless-stopped
+    healthcheck:
+      test: [["CMD", "nodejs", "/app/healthcheck.js"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   postgres:
     image: postgres:16-alpine
-    privileged: true
     restart: unless-stopped
+    shm_size: 128mb
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
@@ -38,11 +44,10 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    privileged: true
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN is required}
     depends_on:
       payload:
-        condition: service_started
+        condition: service_healthy
     networks:
       - internal
     restart: unless-stopped

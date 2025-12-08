@@ -111,21 +111,25 @@ jobs:
         run: |
           mkdir -p "$DEPLOY_PATH"
 
+          # 権限設定: ディレクトリは現在のユーザーのみアクセス可能に
+          chmod 700 "$DEPLOY_PATH"
+
           # Backup current .env for rollback
           if [ -f "$DEPLOY_PATH/.env" ]; then
             cp "$DEPLOY_PATH/.env" "$DEPLOY_PATH/.env.bak"
           fi
-
-          # Get current image for rollback
-          CURRENT_IMAGE=$(grep -E "^PAYLOAD_IMAGE=" "$DEPLOY_PATH/.env" 2>/dev/null | cut -d'=' -f2 || echo "")
-          echo "current-image=$CURRENT_IMAGE" >> $GITHUB_OUTPUT
 
       - name: Copy compose file
         run: cp compose.deploy.yaml "$DEPLOY_PATH/docker-compose.yml"
 
       - name: Create .env
         run: |
-          cat > "$DEPLOY_PATH/.env" << 'EOF'
+          # ヒアドキュメント内の変数を展開しつつ書き込み
+          # セキュリティ: ファイルパーミッションを600（所有者のみ読み書き）に設定してから書き込む
+          touch "$DEPLOY_PATH/.env"
+          chmod 600 "$DEPLOY_PATH/.env"
+
+          cat > "$DEPLOY_PATH/.env" << EOF
           DATABASE_URI=${{ secrets.DATABASE_URI || vars.DATABASE_URI }}
           PAYLOAD_SECRET=${{ secrets.PAYLOAD_SECRET || vars.PAYLOAD_SECRET }}
           POSTGRES_DB=${{ secrets.POSTGRES_DB || vars.POSTGRES_DB }}
@@ -134,36 +138,28 @@ jobs:
           CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN || vars.CLOUDFLARE_TUNNEL_TOKEN }}
           PAYLOAD_IMAGE=${{ env.REGISTRY }}/${{ needs.build.outputs.image-name-lower }}:${{ needs.build.outputs.short-sha }}
           EOF
-          # Remove leading whitespace from .env file
-          sed -i 's/^[[:space:]]*//' "$DEPLOY_PATH/.env"
-
-          # Debug: show .env contents (without secrets)
-          echo "=== .env file created ==="
-          cat "$DEPLOY_PATH/.env" | sed 's/=.*/=***'/
 
       - name: Deploy
         run: |
           cd "$DEPLOY_PATH"
-          docker compose --env-file .env pull --quiet
-          docker compose --env-file .env down --timeout 30 --remove-orphans || true
-          docker compose --env-file .env up -d
+          echo "⬇️ Pulling latest images..."
+          docker compose pull --quiet
 
-      - name: Health check
+          echo "🚀 Starting services..."
+          # downせず、up -d --wait を使うことでダウンタイムを最小化
+          # --wait: ヘルスチェックが通るまでGithub Actionsのステップを完了させない
+          docker compose up -d --wait --remove-orphans
+
+      - name: External Health Check
         run: |
-          echo "Waiting for startup..."
-          sleep 10
-
-          for i in $(seq 1 20); do
-            if curl -sf --max-time 5 http://localhost:3000/api/health > /dev/null 2>&1; then
-              echo "✅ Health check passed"
-              exit 0
-            fi
-            echo "Attempt $i/20 failed, retrying..."
-            sleep 5
-          done
-
-          echo "❌ Health check failed"
-          exit 1
+          echo "Waiting for stabilization..."
+          sleep 5
+          if curl -sf --max-time 5 http://localhost:3000/api/health > /dev/null 2>&1; then
+            echo "✅ External health check passed"
+          else
+            echo "❌ External health check failed"
+            exit 1
+          fi
 
       - name: Cleanup old images
         if: success()
@@ -177,9 +173,10 @@ jobs:
 
           if [ -f ".env.bak" ]; then
             mv .env.bak .env
+            # 旧イメージに戻すため、再度pullが必要な場合がある
+            docker compose pull --quiet
+            docker compose up -d --wait
+            echo "Rollback completed. Verify manually."
+          else
+            echo "No backup found. Manual intervention required."
           fi
-
-          docker compose down --timeout 30 --remove-orphans || true
-          docker compose up -d
-
-          echo "Rollback completed. Verify manually."
