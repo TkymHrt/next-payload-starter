@@ -151,23 +151,77 @@ jobs:
       - name: Deploy
         run: |
           cd "$DEPLOY_PATH"
+
+          # 現在のイメージを保存（ロールバック用）
+          CURRENT_IMAGE=$(grep "PAYLOAD_IMAGE=" .env 2>/dev/null | cut -d'=' -f2 || echo "")
+          if [ -n "$CURRENT_IMAGE" ]; then
+            echo "ROLLBACK_IMAGE=$CURRENT_IMAGE" >> .env.bak
+          fi
+
           echo "⬇️ Pulling latest images..."
           docker compose pull --quiet
 
-          echo "🛑 Stopping existing services..."
-          docker compose down --timeout 30 || true
+          echo "🛑 Stopping existing services gracefully..."
+          # 段階的に停止（cloudflared → payload → postgres）
+          docker compose stop cloudflared --timeout 10 || true
+          docker compose stop payload --timeout 30 || true
 
-          echo "🚀 Starting services..."
-          # --wait: ヘルスチェックが通るまで待機
-          docker compose up -d --wait --remove-orphans --timeout 120
+          echo "🗑️ Removing old containers..."
+          docker compose rm -f cloudflared payload || true
+
+          echo "🚀 Starting services in order..."
+          # 1. PostgreSQLが起動済みか確認、起動していなければ起動
+          docker compose up -d postgres
+
+          # PostgreSQLのヘルスチェック待機
+          echo "⏳ Waiting for PostgreSQL to be healthy..."
+          for i in $(seq 1 30); do
+            if docker compose exec -T postgres pg_isready -U ${POSTGRES_USER:-payload} -d ${POSTGRES_DB:-payload} > /dev/null 2>&1; then
+              echo "✅ PostgreSQL is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ PostgreSQL failed to start"
+              docker compose logs postgres --tail=30
+              exit 1
+            fi
+            sleep 2
+          done
+
+          # 2. Payload CMSを起動
+          echo "🚀 Starting Payload..."
+          docker compose up -d payload
+
+          # Payloadのヘルスチェック待機（最大3分）
+          echo "⏳ Waiting for Payload to be healthy..."
+          for i in $(seq 1 36); do
+            if docker compose exec -T payload node -e "const http = require('http'); http.get('http://localhost:3000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1));" 2>/dev/null; then
+              echo "✅ Payload is ready"
+              break
+            fi
+            if [ $i -eq 36 ]; then
+              echo "❌ Payload failed to start within timeout"
+              docker compose logs payload --tail=50
+              exit 1
+            fi
+            echo "  Attempt $i/36..."
+            sleep 5
+          done
+
+          # 3. Cloudflare Tunnelを起動
+          echo "🚀 Starting Cloudflare Tunnel..."
+          docker compose up -d cloudflared
+
+          echo "✅ All services started"
+          docker compose ps
 
       - name: External Health Check
         run: |
           echo "Waiting for stabilization..."
-          sleep 10
+          sleep 15
 
-          MAX_RETRIES=6
-          RETRY_INTERVAL=5
+          MAX_RETRIES=12
+          RETRY_INTERVAL=10
 
           # ヘルスチェック関数（curl, wget, node のいずれかを使用）
           check_health() {
@@ -187,6 +241,13 @@ jobs:
             echo "Health check attempt $i/$MAX_RETRIES..."
             if check_health; then
               echo "✅ External health check passed"
+              
+              # 追加: レスポンス内容を表示
+              if command -v curl &> /dev/null; then
+                echo "Health response:"
+                curl -s http://localhost:3000/api/health | head -c 500
+                echo ""
+              fi
               exit 0
             fi
             if [ $i -lt $MAX_RETRIES ]; then
@@ -195,7 +256,12 @@ jobs:
             fi
           done
           echo "❌ External health check failed after $MAX_RETRIES attempts"
-          docker compose logs payload --tail=50
+          echo "=== Container Status ==="
+          docker compose ps
+          echo "=== Payload Logs ==="
+          docker compose logs payload --tail=100
+          echo "=== PostgreSQL Logs ==="
+          docker compose logs postgres --tail=30
           exit 1
 
       - name: Cleanup old images
@@ -208,12 +274,46 @@ jobs:
           cd "$DEPLOY_PATH"
           echo "⚠️ Rollback initiated..."
 
+          # 現在の失敗したコンテナを停止
+          docker compose stop payload cloudflared --timeout 10 || true
+          docker compose rm -f payload cloudflared || true
+
           if [ -f ".env.bak" ]; then
-            mv .env.bak .env
-            # 旧イメージに戻すため、再度pullが必要な場合がある
-            docker compose pull --quiet
-            docker compose up -d --wait
-            echo "Rollback completed. Verify manually."
+            # バックアップから前のイメージ情報を取得
+            ROLLBACK_IMAGE=$(grep "ROLLBACK_IMAGE=" .env.bak 2>/dev/null | cut -d'=' -f2 || echo "")
+            
+            if [ -n "$ROLLBACK_IMAGE" ]; then
+              echo "Rolling back to image: $ROLLBACK_IMAGE"
+              
+              # .envのPAYLOAD_IMAGEを更新
+              sed -i "s|PAYLOAD_IMAGE=.*|PAYLOAD_IMAGE=$ROLLBACK_IMAGE|" .env
+              
+              # 前のイメージで起動
+              docker compose pull payload --quiet || true
+              docker compose up -d postgres
+              sleep 5
+              docker compose up -d payload
+              
+              # ヘルスチェック
+              for i in $(seq 1 12); do
+                if docker compose exec -T payload node -e "const http = require('http'); http.get('http://localhost:3000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1));" 2>/dev/null; then
+                  echo "✅ Rollback successful"
+                  docker compose up -d cloudflared
+                  exit 0
+                fi
+                echo "Rollback health check attempt $i/12..."
+                sleep 5
+              done
+              
+              echo "❌ Rollback also failed. Manual intervention required."
+              docker compose logs payload --tail=50
+            else
+              echo "No previous image found in backup. Manual intervention required."
+            fi
           else
             echo "No backup found. Manual intervention required."
           fi
+
+          echo "=== Current Status ==="
+          docker compose ps
+          exit 1

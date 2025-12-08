@@ -1,0 +1,21 @@
+# Self-hosted Runner Compose File (DooD方式)
+
+services:
+  runner:
+    image: myoung34/github-runner:latest
+    restart: unless-stopped
+    environment:
+      RUNNER_NAME: ${RUNNER_NAME:-proxmox-runner}
+      RUNNER_SCOPE: repo
+      REPO_URL: ${REPO_URL:?REPO_URL is required}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:?ACCESS_TOKEN is required}
+      LABELS: self-hosted,linux,x64
+      RUNNER_WORKDIR: /tmp/runner/work
+      EPHEMERAL: "false"
+      RUNNER_GROUP: Default
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-work:/tmp/runner/work
+
+volumes:
+  runner-work:
