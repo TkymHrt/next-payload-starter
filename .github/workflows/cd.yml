@@ -137,12 +137,16 @@ jobs:
           # Remove leading whitespace from .env file
           sed -i 's/^[[:space:]]*//' "$DEPLOY_PATH/.env"
 
+          # Debug: show .env contents (without secrets)
+          echo "=== .env file created ==="
+          cat "$DEPLOY_PATH/.env" | sed 's/=.*/=***/'
+
       - name: Deploy
         run: |
           cd "$DEPLOY_PATH"
-          docker compose pull --quiet
-          docker compose down --timeout 30 --remove-orphans || true
-          docker compose up -d
+          docker compose --env-file .env pull --quiet
+          docker compose --env-file .env down --timeout 30 --remove-orphans || true
+          docker compose --env-file .env up -d
 
       - name: Health check
         run: |
