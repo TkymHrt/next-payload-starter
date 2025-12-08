@@ -33,7 +33,7 @@ jobs:
   # ============================================
   security-scan:
     name: Security Scan
-    runs-on: ${{ fromJSON(env.RUNNER_LABELS) }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
