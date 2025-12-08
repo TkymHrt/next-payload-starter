@@ -1,4 +1,3 @@
-# CD Workflow - Build and Deploy with parallel runner support
 name: CD
 
 on:
@@ -97,7 +96,7 @@ jobs:
 
       - name: Verify image
         run: |
-          echo "✅ Built and pushed: ${{ steps.vars.outputs.image-tag }}"
+          echo "Built and pushed: ${{ steps.vars.outputs.image-tag }}"
 
   deploy:
     name: Deploy
@@ -126,14 +125,14 @@ jobs:
             if mkdir "$LOCK_FILE" 2>/dev/null; then
               echo "lock-acquired=true" >> $GITHUB_OUTPUT
               echo "lock-file=$LOCK_FILE" >> $GITHUB_OUTPUT
-              echo "✅ Deploy lock acquired"
+              echo "Deploy lock acquired"
               exit 0
             fi
             echo "Waiting for deploy lock... ($i/12)"
             sleep 5
           done
 
-          echo "⚠️ Could not acquire lock, proceeding anyway (stale lock?)"
+          echo "Could not acquire lock, proceeding anyway (stale lock?)"
           rm -rf "$LOCK_FILE" || true
           mkdir "$LOCK_FILE"
           echo "lock-acquired=true" >> $GITHUB_OUTPUT
@@ -180,20 +179,20 @@ jobs:
         run: |
           cd "$DEPLOY_PATH"
 
-          echo "⬇️ Pulling images..."
+          echo "Pulling images..."
           docker compose pull
 
-          echo "🛑 Stopping existing services..."
+          echo "Stopping existing services..."
           docker compose down --timeout 30 || true
 
-          echo "🚀 Starting services..."
+          echo "Starting services..."
           if docker compose up -d; then
             echo "deploy-success=true" >> $GITHUB_OUTPUT
-            echo "✅ Services started successfully"
+            echo "Services started successfully"
             sleep 10
           else
             echo "deploy-success=false" >> $GITHUB_OUTPUT
-            echo "❌ Failed to start services"
+            echo "Failed to start services"
             docker compose logs --tail=100
             exit 1
           fi
@@ -205,7 +204,7 @@ jobs:
         run: |
           cd "$DEPLOY_PATH"
 
-          echo "✅ Deployment completed"
+          echo "Deployment completed"
           docker compose ps
           docker compose logs --tail=50 payload
 
@@ -215,7 +214,7 @@ jobs:
           LOCK_FILE="${{ steps.lock.outputs.lock-file }}"
           if [ -n "$LOCK_FILE" ] && [ -d "$LOCK_FILE" ]; then
             rm -rf "$LOCK_FILE"
-            echo "🔓 Deploy lock released"
+            echo "Deploy lock released"
           fi
 
       - name: Cleanup old images
@@ -226,7 +225,7 @@ jobs:
         if: failure() && steps.deploy.outputs.deploy-success == 'false'
         run: |
           cd "$DEPLOY_PATH"
-          echo "⚠️ Rollback initiated..."
+          echo "Rollback initiated..."
 
           docker compose down --timeout 30 || true
 

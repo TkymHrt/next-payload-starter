@@ -1,5 +1,4 @@
 # Production Deployment Compose File
-# Self-hosted runner経由でのProxmoxコンテナデプロイ用
 
 services:
   payload:
