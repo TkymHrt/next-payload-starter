@@ -89,4 +89,3 @@ jobs:
         env:
           DATABASE_URI: "postgresql://dummy:dummy@localhost:5432/dummy"
           PAYLOAD_SECRET: "ci-build-secret-minimum-32-characters"
-
