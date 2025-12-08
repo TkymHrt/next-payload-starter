@@ -159,9 +159,24 @@ jobs:
 
           MAX_RETRIES=6
           RETRY_INTERVAL=5
+
+          # ヘルスチェック関数（curl, wget, node のいずれかを使用）
+          check_health() {
+            if command -v curl &> /dev/null; then
+              curl -sf --max-time 10 http://localhost:3000/api/health > /dev/null 2>&1
+            elif command -v wget &> /dev/null; then
+              wget -q --timeout=10 -O /dev/null http://localhost:3000/api/health 2>/dev/null
+            elif command -v node &> /dev/null; then
+              node -e "const http = require('http'); http.get('http://localhost:3000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1));"
+            else
+              echo "No HTTP client available"
+              return 1
+            fi
+          }
+
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Health check attempt $i/$MAX_RETRIES..."
-            if curl -sf --max-time 10 http://localhost:3000/api/health > /dev/null 2>&1; then
+            if check_health; then
               echo "✅ External health check passed"
               exit 0
             fi
