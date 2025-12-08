@@ -15,8 +15,6 @@ services:
       - "3000"
     networks:
       - internal
-    security_opt:
-      - no-new-privileges:true
     restart: unless-stopped
 
   postgres:
@@ -30,8 +28,6 @@ services:
       - pgdata-prod:/var/lib/postgresql/data
     networks:
       - internal
-    security_opt:
-      - no-new-privileges:true
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -46,8 +42,6 @@ services:
         condition: service_started
     networks:
       - internal
-    security_opt:
-      - no-new-privileges:true
     restart: unless-stopped
 
 networks:
