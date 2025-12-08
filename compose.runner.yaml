@@ -1,9 +1,5 @@
-# Self-hosted Runner Compose File (DooD方式)
-# 並列ジョブ実行のため複数のRunnerを起動可能
-#
-# 使用方法:
-#   1台: docker compose -f compose.runner.yaml up -d
-#   複数: docker compose -f compose.runner.yaml up -d --scale runner=2
+# Self-hosted Runner Compose File (DooD)
+# ex: docker compose -f compose.runner.yaml up -d --scale runner=2
 
 services:
   runner:
