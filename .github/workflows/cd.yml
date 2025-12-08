@@ -206,7 +206,7 @@ jobs:
           docker compose down --timeout 30 || true
 
           echo "🚀 Starting services..."
-          if docker compose up -d --wait --wait-timeout 180; then
+          if docker compose up -d --wait --wait-timeout 240; then
             echo "deploy-success=true" >> $GITHUB_OUTPUT
             echo "✅ Services started successfully"
           else
