@@ -145,21 +145,34 @@ jobs:
           echo "⬇️ Pulling latest images..."
           docker compose pull --quiet
 
+          echo "🛑 Stopping existing services..."
+          docker compose down --timeout 30 || true
+
           echo "🚀 Starting services..."
-          # downせず、up -d --wait を使うことでダウンタイムを最小化
-          # --wait: ヘルスチェックが通るまでGithub Actionsのステップを完了させない
-          docker compose up -d --wait --remove-orphans
+          # --wait: ヘルスチェックが通るまで待機
+          docker compose up -d --wait --remove-orphans --timeout 120
 
       - name: External Health Check
         run: |
           echo "Waiting for stabilization..."
-          sleep 5
-          if curl -sf --max-time 5 http://localhost:3000/api/health > /dev/null 2>&1; then
-            echo "✅ External health check passed"
-          else
-            echo "❌ External health check failed"
-            exit 1
-          fi
+          sleep 10
+
+          MAX_RETRIES=6
+          RETRY_INTERVAL=5
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Health check attempt $i/$MAX_RETRIES..."
+            if curl -sf --max-time 10 http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "✅ External health check passed"
+              exit 0
+            fi
+            if [ $i -lt $MAX_RETRIES ]; then
+              echo "Waiting ${RETRY_INTERVAL}s before retry..."
+              sleep $RETRY_INTERVAL
+            fi
+          done
+          echo "❌ External health check failed after $MAX_RETRIES attempts"
+          docker compose logs payload --tail=50
+          exit 1
 
       - name: Cleanup old images
         if: success()
