@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -37,14 +37,14 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
       - name: Cache dependencies
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
@@ -61,7 +61,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -71,12 +71,12 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
@@ -95,7 +95,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -105,12 +105,12 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: node_modules
           key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
