@@ -58,6 +58,7 @@ docker compose --env-file .env.production -f compose.prod.yaml down
 description = "Reset production stack volumes and rebuild"
 run = """
 set -euo pipefail
-docker compose --env-file .env.production -f compose.prod.yaml down -v
-docker compose --env-file .env.production -f compose.prod.yaml up -d --build
+CMD="docker compose --env-file .env.production -f compose.prod.yaml"
+$CMD down -v
+$CMD up -d --build
 """

@@ -36,16 +36,6 @@ This command brings up Docker Compose, installs dependencies with the pnpm lockf
 - `mise run reset:db` to recreate the development database
 - `mise run prod:up` / `mise run prod:down` / `mise run reset:db:prod` for the production compose stack
 
-#### Docker (Optional)
-
-If you prefer to use Docker for local development instead of a local MongoDB instance, the provided docker-compose.yml file can be used.
-
-To do so, follow these steps:
-
-- Modify the `MONGODB_URI` in your `.env` file to `mongodb://127.0.0.1/<dbname>`
-- Modify the `docker-compose.yml` file's `MONGODB_URI` to match the above `<dbname>`
-- Run `docker-compose up` to start the database, optionally pass `-d` to run in the background.
-
 ## How it works
 
 The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
