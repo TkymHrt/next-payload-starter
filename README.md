@@ -6,7 +6,7 @@ This template comes configured with the bare minimum to get started on anything 
 
 This template can be deployed directly from our Cloud hosting and it will setup MongoDB and cloud S3 object storage for media.
 
-## Quick Start - local setup
+## Quick start - local setup
 
 Use mise to pin the toolchain and drive the common workflows. Requirements: Docker + Docker Compose and mise installed (for example, `curl https://mise.run | sh`).
 
