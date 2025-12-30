@@ -4,18 +4,29 @@
 
 ### 環境構築
 
+前提: Docker と Docker Compose がインストールされていること。mise が未導入の場合は `curl https://mise.run | sh` などでセットアップしてください。
+
 ```bash
 # リポジトリをクローン
 git clone <repository-url>
 cd <project-name>
 
-# 依存関係をインストール
-pnpm install
+# mise によるツールの信頼とインストール
+mise trust
+mise install
 
-# 開発サーバーを起動
-docker compose up -d  # PostgreSQL
-pnpm dev
+# 環境変数をセット
+cp .env.example .env  # PAYLOAD_SECRET や DATABASE_URI を編集
+
+# 開発用スタックを起動（PostgreSQL + 依存関係インストール + Next.js/Payload dev）
+mise run dev
 ```
+
+関連タスク:
+
+- `mise run dev:db` / `mise run dev:db:stop` でデータベースのみの起動・停止
+- `mise run reset:db` で開発データベースのリセット
+- `mise run prod:up` / `mise run prod:down` / `mise run reset:db:prod` で本番用 Compose スタックの操作
 
 ### 必要な環境変数
 

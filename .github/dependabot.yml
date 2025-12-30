@@ -1,5 +1,5 @@
 # Dependabot configuration
-# Optimized for single self-hosted runner
+# Weekly refresh cycle keeps dependencies current
 
 version: 2
 

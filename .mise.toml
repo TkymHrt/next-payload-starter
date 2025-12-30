@@ -1,0 +1,63 @@
+[tools]
+node = "24.11.1"
+pnpm = "10.24.0"
+
+[env]
+NODE_OPTIONS = "--no-deprecation"
+
+[tasks."dev:db"]
+description = "Start PostgreSQL via Docker Compose"
+run = "docker compose up -d postgres"
+
+[tasks."dev:db:stop"]
+description = "Stop PostgreSQL containers"
+run = "docker compose down"
+
+[tasks.dev]
+description = "Start Docker services, install deps, and run Next.js dev server"
+run = """
+set -euo pipefail
+docker compose up -d
+cleanup() {
+	status=$?
+	docker compose stop
+	# Treat Ctrl+C/termination as a graceful shutdown
+	if [ "$status" -eq 130 ] || [ "$status" -eq 143 ]; then
+		exit 0
+	fi
+	exit "$status"
+}
+trap cleanup EXIT INT TERM
+pnpm install --frozen-lockfile
+pnpm dev
+"""
+
+[tasks."reset:db"]
+description = "Drop dev volumes and recreate PostgreSQL"
+run = """
+set -euo pipefail
+docker compose down -v
+docker compose up -d postgres
+"""
+
+[tasks."prod:up"]
+description = "Build and start production stack"
+run = """
+set -euo pipefail
+docker compose --env-file .env.production -f compose.prod.yaml up -d --build
+"""
+
+[tasks."prod:down"]
+description = "Stop production stack"
+run = """
+set -euo pipefail
+docker compose --env-file .env.production -f compose.prod.yaml down
+"""
+
+[tasks."reset:db:prod"]
+description = "Reset production stack volumes and rebuild"
+run = """
+set -euo pipefail
+docker compose --env-file .env.production -f compose.prod.yaml down -v
+docker compose --env-file .env.production -f compose.prod.yaml up -d --build
+"""
