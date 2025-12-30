@@ -1,9 +1,10 @@
-import { fileURLToPath } from "node:url";
 import { headers as getHeaders } from "next/headers.js";
 import Image from "next/image";
 import { getPayload } from "payload";
 import config from "@/payload.config";
 import "./styles.css";
+
+export const revalidate = 60;
 
 export default async function HomePage() {
   const headers = await getHeaders();
@@ -19,8 +20,6 @@ export default async function HomePage() {
 
   const mediaItems = mediaQuery.docs;
 
-  const fileURL = `vscode://file/${fileURLToPath(import.meta.url)}`;
-
   return (
     <div className="home">
       <div className="content">
@@ -28,7 +27,7 @@ export default async function HomePage() {
         {!!user && <h1>Welcome back, {user.email}</h1>}
         {mediaItems.length > 0 ? (
           <div className="mediaGrid">
-            {mediaItems.map((item) => {
+            {mediaItems.map((item, index) => {
               const width = item.width ?? 1200;
               const height = item.height ?? 800;
               const alt = item.alt || item.filename || "Uploaded media";
@@ -41,8 +40,13 @@ export default async function HomePage() {
                 <figure className="mediaCard" key={item.id}>
                   <Image
                     alt={alt}
+                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                    fetchPriority={index === 0 ? "high" : "auto"}
                     height={height}
-                    sizes="(max-width: 768px) 100vw, 480px"
+                    loading={index < 6 ? "eager" : "lazy"}
+                    placeholder="blur"
+                    priority={index === 0}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 33vw, 220px"
                     src={item.url}
                     width={width}
                   />
@@ -76,12 +80,6 @@ export default async function HomePage() {
             Documentation
           </a>
         </div>
-      </div>
-      <div className="footer">
-        <p>Update this page by editing</p>
-        <a className="codeLink" href={fileURL}>
-          <code>app/(frontend)/page.tsx</code>
-        </a>
       </div>
     </div>
   );

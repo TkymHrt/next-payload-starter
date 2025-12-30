@@ -28,15 +28,50 @@ const getRemotePatterns = () => {
 const nextConfig = {
   // Your Next.js config here
   output: "standalone",
+  reactStrictMode: true,
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
+  },
   images: {
     remotePatterns: getRemotePatterns(),
     formats: ["image/avif", "image/webp"],
   },
   experimental: {
+    reactCompiler: true,
     serverActions: {
       bodySizeLimit: "50mb",
     },
   },
+  headers: async () => [
+    {
+      source: "/:path*",
+      headers: [
+        {
+          key: "X-DNS-Prefetch-Control",
+          value: "on",
+        },
+        {
+          key: "X-Frame-Options",
+          value: "SAMEORIGIN",
+        },
+        {
+          key: "X-Content-Type-Options",
+          value: "nosniff",
+        },
+        {
+          key: "Referrer-Policy",
+          value: "strict-origin-when-cross-origin",
+        },
+        {
+          key: "Permissions-Policy",
+          value: "camera=(), microphone=(), geolocation=()",
+        },
+      ],
+    },
+  ],
   webpack: (config) => {
     config.resolve.extensionAlias = {
       ".cjs": [".cts", ".cjs"],

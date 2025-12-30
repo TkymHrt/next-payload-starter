@@ -49,6 +49,7 @@
     "@types/react": "19.2.1",
     "@types/react-dom": "19.2.1",
     "@vitejs/plugin-react": "4.5.2",
+    "babel-plugin-react-compiler": "^1.0.0",
     "jsdom": "26.1.0",
     "lefthook": "^2.0.8",
     "playwright": "1.56.1",
@@ -68,5 +69,11 @@
       "esbuild",
       "unrs-resolver"
     ]
-  }
+  },
+  "browserslist": [
+    "chrome >= 90",
+    "firefox >= 88",
+    "safari >= 14",
+    "edge >= 90"
+  ]
 }

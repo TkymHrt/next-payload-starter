@@ -21,7 +21,7 @@ body,
 }
 
 body {
-  font-family: system-ui;
+  font-family: var(--font-mono, system-ui);
   font-size: 18px;
   line-height: 32px;
 
