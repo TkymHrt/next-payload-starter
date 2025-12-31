@@ -46,6 +46,10 @@
   "[graphql]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml",
+    "editor.formatOnSave": true
+  },
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
   "emmet.showExpandedAbbreviation": "never",

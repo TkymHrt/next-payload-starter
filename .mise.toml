@@ -3,62 +3,63 @@ node = "24.11.1"
 pnpm = "10.24.0"
 
 [env]
-NODE_OPTIONS = "--no-deprecation"
+NODE_OPTIONS      = "--no-deprecation"
+PROD_COMPOSE_ARGS = "--env-file .env.production -f compose.prod.yaml"
+
+[tasks.install]
+description = "ロックファイルに変更があった場合のみ依存関係をインストール"
+run         = "pnpm install --frozen-lockfile"
+sources     = ["package.json", "pnpm-lock.yaml"]
 
 [tasks."dev:db"]
-description = "Start PostgreSQL via Docker Compose"
-run = "docker compose up -d postgres"
+description = "PostgreSQL (DB) のみを開始"
+run         = "docker compose up -d postgres"
 
 [tasks."dev:db:stop"]
-description = "Stop PostgreSQL containers"
-run = "docker compose down"
-
-[tasks.dev]
-description = "Start Docker services, install deps, and run Next.js dev server"
-run = """
-set -euo pipefail
-docker compose up -d
-cleanup() {
-	status=$?
-	docker compose stop
-	# Treat Ctrl+C/termination as a graceful shutdown
-	if [ "$status" -eq 130 ] || [ "$status" -eq 143 ]; then
-		exit 0
-	fi
-	exit "$status"
-}
-trap cleanup EXIT INT TERM
-pnpm install --frozen-lockfile
-pnpm dev
-"""
+description = "PostgreSQL を停止"
+run         = "docker compose stop"
 
 [tasks."reset:db"]
-description = "Drop dev volumes and recreate PostgreSQL"
+description = "開発用DBのデータを削除して作り直す（リセット）"
 run = """
 set -euo pipefail
 docker compose down -v
 docker compose up -d postgres
 """
 
-[tasks."prod:up"]
-description = "Build and start production stack"
+[tasks.dev]
+depends = ["install"]
+description = "DockerとNext.jsサーバーを起動 (Ctrl+C終了時にコンテナも自動停止)"
 run = """
 set -euo pipefail
-docker compose --env-file .env.production -f compose.prod.yaml up -d --build
+docker compose up -d
+cleanup() {
+    docker compose stop
+}
+trap cleanup EXIT
+trap '' INT
+set +e
+pnpm dev
+EXIT_CODE=$?
+set -e
+if [ "$EXIT_CODE" -eq 130 ] || [ "$EXIT_CODE" -eq 143 ]; then
+    exit 0
+fi
+exit "$EXIT_CODE"
 """
+
+[tasks."prod:up"]
+description = "本番環境スタックをビルドして起動"
+run         = "docker compose $PROD_COMPOSE_ARGS up -d --build"
 
 [tasks."prod:down"]
-description = "Stop production stack"
-run = """
-set -euo pipefail
-docker compose --env-file .env.production -f compose.prod.yaml down
-"""
+description = "本番環境スタックを停止"
+run         = "docker compose $PROD_COMPOSE_ARGS down"
 
 [tasks."reset:db:prod"]
-description = "Reset production stack volumes and rebuild"
+description = "本番用DBデータを削除して再構築"
 run = """
 set -euo pipefail
-CMD="docker compose --env-file .env.production -f compose.prod.yaml"
-$CMD down -v
-$CMD up -d --build
+docker compose $PROD_COMPOSE_ARGS down -v
+docker compose $PROD_COMPOSE_ARGS up -d --build
 """
