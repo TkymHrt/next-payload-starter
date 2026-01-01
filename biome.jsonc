@@ -28,6 +28,7 @@
       "!**/src/app/(payload)/admin/**/not-found.tsx",
       "!**/src/app/(payload)/admin/**/page.tsx",
       "!**/src/app/(payload)/layout.tsx",
+      "!**/src/lib/react-aria-utils.ts",
       "!**/media",
       "!**/.DS_Store",
       "!**/src/components/ui",

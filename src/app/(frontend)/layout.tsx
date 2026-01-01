@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Roboto_Mono } from "next/font/google";
 import type React from "react";
-import "./styles.css";
+import "./globals.css";
 
 const robotoMono = Roboto_Mono({
   subsets: ["latin"],
