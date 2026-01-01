@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-react-aria-components";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply bg-white text-neutral-900 transition-colors duration-300 dark:bg-neutral-950 dark:text-neutral-50;
+  }
+}
