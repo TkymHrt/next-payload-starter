@@ -15,7 +15,7 @@ permissions:
 
 env:
   NODE_VERSION: "24"
-  PNPM_VERSION: "10"
+  # Using Bun for installs
 
 jobs:
   setup:
@@ -31,27 +31,25 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          cache: "npm"
 
       - name: Cache dependencies
         id: cache
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+          key: node-modules-${{ hashFiles('bun.lock') }}
 
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+        run: bun install
 
   lint:
     name: Lint & Type Check
@@ -65,10 +63,8 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -79,13 +75,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+          key: node-modules-${{ hashFiles('bun.lock') }}
 
       - name: Lint & Format check
-        run: pnpm run check
+        run: bun run check
 
       - name: Type check
-        run: pnpm exec tsc --noEmit
+        run: bunx tsc --noEmit
 
   build:
     name: Build
@@ -99,10 +95,8 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -113,10 +107,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+          key: node-modules-${{ hashFiles('bun.lock') }}
 
       - name: Build
-        run: pnpm run build
+        run: bun run build
         env:
           DATABASE_URI: "postgresql://dummy:dummy@localhost:5432/dummy"
           PAYLOAD_SECRET: "ci-build-secret-minimum-32-characters"
