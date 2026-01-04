@@ -1,8 +1,7 @@
 FROM node:24.11.1-trixie-slim AS base
 
 # Install Bun
-RUN apt-get update && apt-get install -y curl unzip ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN curl -fsSL https://bun.sh/install | bash
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip ca-certificates && curl -fsSL https://bun.sh/install | bash && apt-get purge -y --auto-remove curl unzip && rm -rf /var/lib/apt/lists/*
 ENV PATH="/root/.bun/bin:${PATH}"
 
 FROM base AS deps
