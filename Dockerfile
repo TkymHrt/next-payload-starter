@@ -1,6 +1,7 @@
-FROM node:24.11.1-trixie-slim AS base
+FROM node:24.11.1-trixie-slim AS node-base
 
-# Install Bun
+FROM node-base AS base
+
 RUN apt-get update && apt-get install -y --no-install-recommends curl unzip ca-certificates && curl -fsSL https://bun.sh/install | bash && apt-get purge -y --auto-remove curl unzip && rm -rf /var/lib/apt/lists/*
 ENV PATH="/root/.bun/bin:${PATH}"
 
@@ -16,7 +17,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun run build
 
-FROM base AS runner
+FROM node-base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
