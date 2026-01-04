@@ -1,12 +1,9 @@
-FROM node:24.11.1-trixie-slim AS base
-ENV BUN_INSTALL="/root/.bun"
-ENV PATH="$BUN_INSTALL/bin:$PATH"
-RUN curl -fsSL https://bun.sh/install | bash
+FROM oven/bun:1.3.5-slim AS base
 
 FROM base AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install
+RUN bun install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
