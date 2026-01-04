@@ -55,8 +55,8 @@ sudo usermod -aG docker $USER
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 
-# pnpm
-corepack enable pnpm
+# Bun
+curl -fsSL https://bun.sh/install | bash
 ```
 
 ### 4. GitHub Actions Runner インストール

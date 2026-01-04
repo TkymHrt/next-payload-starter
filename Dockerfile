@@ -1,21 +1,23 @@
-FROM node:24.11.1-trixie-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g pnpm
+FROM node:24.11.1-trixie-slim AS node-base
+
+FROM node-base AS base
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip ca-certificates && curl -fsSL https://bun.sh/install | bash && apt-get purge -y --auto-remove curl unzip && rm -rf /var/lib/apt/lists/*
+ENV PATH="/root/.bun/bin:${PATH}"
 
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm run build
+RUN bun run build
 
-FROM base AS runner
+FROM node-base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
