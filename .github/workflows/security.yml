@@ -7,7 +7,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "pnpm-lock.yaml"
+      - "bun.lockb"
       - "package.json"
       - "Dockerfile"
   schedule:
@@ -24,7 +24,7 @@ permissions:
 
 env:
   NODE_VERSION: "24"
-  PNPM_VERSION: "10"
+  # Using Bun for installs
 
 jobs:
   security-scan:
@@ -38,22 +38,20 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          cache: "npm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install
 
-      - name: Run pnpm audit
-        run: pnpm audit --audit-level=high || true
+      - name: Run bun audit
+        run: bun audit --audit-level=high || true
 
       - name: Clean stale gitleaks temp file
         run: rm -f /tmp/gitleaks.tmp
