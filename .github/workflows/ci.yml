@@ -49,7 +49,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: bun install
+        run: bun install --frozen-lockfile
 
   lint:
     name: Lint & Type Check

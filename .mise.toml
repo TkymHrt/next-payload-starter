@@ -8,7 +8,7 @@
 
 [tasks.install]
     description = "ロックファイルに変更があった場合のみ依存関係をインストール"
-    run         = "bun install"
+    run         = "bun install --frozen-lockfile"
     sources     = ["bun.lock", "package.json"]
 
 [tasks."dev:db"]
