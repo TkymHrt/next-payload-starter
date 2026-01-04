@@ -79,10 +79,10 @@ git checkout -b <type>/<issue-number>-<short-description>
 
 ```bash
 # コードフォーマット
-pnpm run fix
+bunx ultracite fix
 
 # テスト実行
-pnpm run test
+bun run test
 
 # コミット
 git add .
@@ -135,13 +135,13 @@ git commit -m "<type>: <description>"
 
 ```bash
 # ユニット・統合テスト
-pnpm run test:int
+bun run test:int
 
 # E2E テスト
-pnpm run test:e2e
+bun run test:e2e
 
 # 全テスト
-pnpm run test
+bun run test
 ```
 
 ## コーディング規約
@@ -150,10 +150,10 @@ pnpm run test
 
 ```bash
 # コードチェック
-pnpm run check
+bun run check
 
 # 自動修正
-pnpm run fix
+bunx ultracite fix
 ```
 
 ## 困ったときは

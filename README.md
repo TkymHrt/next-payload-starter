@@ -30,7 +30,7 @@ cp .env.example .env
 mise run dev
 ```
 
-This command brings up Docker Compose, installs dependencies with the pnpm lockfile, and runs the dev server. Other helpful tasks:
+This command brings up Docker Compose, installs dependencies with the Bun lockfile, and runs the dev server. Other helpful tasks:
 
 - `mise run dev:db` / `mise run dev:db:stop` to start or stop only the database
 - `mise run reset:db` to recreate the development database
