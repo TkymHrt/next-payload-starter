@@ -4,31 +4,33 @@ node = "24.11.1"
 
 [env]
 NODE_OPTIONS = "--no-deprecation"
-PROD_COMPOSE_ARGS = "--env-file .env.production -f compose.prod.yaml"
+PROD_ENV_FILE = ".env.production"
+PROD_COMPOSE_FILE = "compose.prod.yaml"
 
 [tasks.check]
-description = "開発環境が整っているか（Docker起動状況や設定ファイル）を検証"
+description = "環境検証 (Docker, 設定ファイル)"
 run = "bun scripts/check-env.ts"
 
 [tasks.install]
-description = "ロックファイルに変更があった場合のみ依存関係をインストール"
+description = "依存関係のインストール"
 run = "bun install --frozen-lockfile"
 sources = ["bun.lock", "package.json"]
 
 [tasks."dev:db"]
-description = "PostgreSQL (DB) のみを開始"
+description = "開発用DBを起動"
 run = "docker compose up -d postgres"
 
 [tasks."dev:db:stop"]
-description = "PostgreSQL を停止"
+description = "開発用DBを停止"
 run = "docker compose stop postgres"
 
 [tasks."reset:db"]
-description = "開発用DBのデータを削除して作り直す（リセット）"
+description = "開発用DBのデータを削除"
+depends = ["check"]
 run = "bun scripts/reset-db.ts"
 
 [tasks.dev]
-description = "DockerとNext.jsサーバーを起動 (Ctrl+C終了時にコンテナも自動停止)"
+description = "開発サーバーを起動"
 depends = ["install", "check"]
 run = "bun scripts/dev.ts"
 
@@ -41,5 +43,6 @@ description = "本番環境を停止"
 run = "bun scripts/prod.ts down"
 
 [tasks."reset:db:prod"]
-description = "本番用DBデータを削除して再構築"
+description = "本番用DBデータを削除"
+depends = ["check"]
 run = "bun scripts/prod.ts reset"

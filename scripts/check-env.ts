@@ -1,28 +1,44 @@
 import { existsSync } from "node:fs";
-import { $ } from "bun";
+import {
+  checkCompose,
+  checkDocker,
+  printError,
+  printHeader,
+  printHint,
+  printItem,
+  printSuccessBanner,
+  printWarning,
+} from "./utils";
 
 async function main() {
-  console.log("[検証開始] 開発環境のステータスを確認しています...");
+  printHeader("環境チェック", "必要なツールと設定の確認を行います");
 
   if (!existsSync(".env")) {
-    console.error(
-      "エラー: .env ファイルが見つかりません。.env.example をコピーして作成してください。"
-    );
+    printError(".env ファイル", "見つかりません");
+    printHint(".env.example をコピーして .env を作成してください");
     process.exit(1);
   }
-  console.log("OK: .env ファイルを確認しました。");
+  printItem(".env ファイル", "設定ファイルあり");
 
-  try {
-    await $`docker info`.quiet();
-    console.log("OK: Docker の動作を確認しました。");
-  } catch {
-    console.error(
-      "エラー: Dockerが起動していないか、インストールされていません。"
-    );
+  if (await checkDocker()) {
+    printItem("Docker", "起動中");
+  } else {
+    printError("Docker", "起動していないか、インストールされていません");
+    printWarning("Docker Desktop を起動してください");
     process.exit(1);
   }
 
-  console.log("検証完了: 開発環境は正常です。");
+  if (await checkCompose()) {
+    printItem("Docker Compose", "利用可能");
+  } else {
+    printError("Docker Compose", "利用できません");
+    process.exit(1);
+  }
+
+  printSuccessBanner("すべての検証に合格しました");
 }
 
-main();
+main().catch((error) => {
+  printError("予期せぬエラー", String(error));
+  process.exit(1);
+});

@@ -1,15 +1,35 @@
 import { $ } from "bun";
+import {
+  printError,
+  printHeader,
+  printInfo,
+  printSuccessBanner,
+  promptConfirmation,
+} from "./utils";
 
 async function main() {
   try {
-    console.log("開発用データベースを再構築しています...");
+    printHeader("DBリセット", "開発用データベースを削除します");
+
+    const confirmed = await promptConfirmation(
+      "すべてのデータが削除されます！この操作は取り消せません。"
+    );
+    if (!confirmed) {
+      printInfo("操作がキャンセルされました");
+      process.exit(0);
+    }
+
     await $`docker compose down -v`;
-    await $`docker compose up -d postgres`;
-    console.log("データベースのリセットが完了しました。");
+
+    printSuccessBanner("データベースを削除しました");
   } catch (error) {
-    console.error("データベースのリセットに失敗しました:", error);
+    printError("リセット失敗", "データベースの削除に失敗しました");
+    console.error(error);
     process.exit(1);
   }
 }
 
-main();
+main().catch((error) => {
+  printError("予期せぬエラー", String(error));
+  process.exit(1);
+});
