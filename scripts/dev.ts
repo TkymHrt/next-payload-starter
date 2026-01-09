@@ -8,8 +8,11 @@ async function main() {
 
   try {
     await $`bun run dev`;
-  } catch (err) {
-    console.error("開発サーバーが停止しました:", err);
+  } catch (err: unknown) {
+    const exitCode = (err as { exitCode?: number })?.exitCode;
+    if (exitCode !== 130 && exitCode !== 143) {
+      console.error("開発サーバーが停止しました:", err);
+    }
   } finally {
     console.log("\nコンテナを停止しています...");
     await $`docker compose stop`;
