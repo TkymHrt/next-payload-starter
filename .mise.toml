@@ -8,26 +8,7 @@ PROD_COMPOSE_ARGS = "--env-file .env.production -f compose.prod.yaml"
 
 [tasks.check]
 description = "開発環境が整っているか（Docker起動状況や設定ファイル）を検証"
-run = """
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    echo "[検証開始] 開発環境のステータスを確認しています..."
-
-    if [ ! -f .env ]; then
-        echo "エラー: .env ファイルが見つかりません。.env.example をコピーして作成してください。"
-        exit 1
-    fi
-    echo "OK: .env ファイルを確認しました。"
-
-    if ! docker info > /dev/null 2>&1; then
-        echo "エラー: Dockerが起動していないか、インストールされていません。"
-        exit 1
-    fi
-    echo "OK: Docker の動作を確認しました。"
-
-    echo "検証完了: 開発環境は正常です。"
-"""
+run = "bun scripts/check-env.ts"
 
 [tasks.install]
 description = "ロックファイルに変更があった場合のみ依存関係をインストール"
@@ -44,68 +25,21 @@ run = "docker compose stop postgres"
 
 [tasks."reset:db"]
 description = "開発用DBのデータを削除して作り直す（リセット）"
-run = """
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    echo "開発用データベースを再構築しています..."
-    docker compose down -v
-    docker compose up -d postgres
-    echo "データベースのリセットが完了しました。"
-"""
+run = "bun scripts/reset-db.ts"
 
 [tasks.dev]
 description = "DockerとNext.jsサーバーを起動 (Ctrl+C終了時にコンテナも自動停止)"
 depends = ["install", "check"]
-run = """
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    cleanup() {
-        echo "コンテナを停止しています..."
-        docker compose stop
-    }
-
-    trap cleanup EXIT
-    trap '' INT
-
-    echo "Dockerコンテナを起動しています..."
-    docker compose up -d
-
-    echo "Next.js 開発サーバーを起動しています..."
-    set +e
-    bun run dev
-    EXIT_CODE=$?
-    set -e
-
-    if [ "$EXIT_CODE" -eq 130 ] || [ "$EXIT_CODE" -eq 143 ]; then
-        exit 0
-    fi
-    exit "$EXIT_CODE"
-"""
+run = "bun scripts/dev.ts"
 
 [tasks."prod:up"]
 description = "本番環境をビルドして起動"
-run = """
-    #!/usr/bin/env bash
-    docker compose $PROD_COMPOSE_ARGS up -d --build
-"""
+run = "bun scripts/prod.ts up"
 
 [tasks."prod:down"]
 description = "本番環境を停止"
-run = """
-    #!/usr/bin/env bash
-    docker compose $PROD_COMPOSE_ARGS down
-"""
+run = "bun scripts/prod.ts down"
 
 [tasks."reset:db:prod"]
 description = "本番用DBデータを削除して再構築"
-run = """
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    echo "警告: 本番用データベースをリセットします..."
-    docker compose $PROD_COMPOSE_ARGS down -v
-    docker compose $PROD_COMPOSE_ARGS up -d --build
-    echo "本番環境のリセットが完了しました。"
-"""
+run = "bun scripts/prod.ts reset"
