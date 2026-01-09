@@ -5,8 +5,17 @@ import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import { s3Storage } from "@payloadcms/storage-s3";
 import { buildConfig } from "payload";
 import sharp from "sharp";
+import { CorporateBooths } from "./collections/CorporateBooths";
+import { Events } from "./collections/Events";
+import { Exhibitions } from "./collections/Exhibitions";
+import { FoodVendors } from "./collections/FoodVendors";
+import { GoodsVendors } from "./collections/GoodsVendors";
+import { Guests } from "./collections/Guests";
 import { Media } from "./collections/Media";
+import { News } from "./collections/News";
+import { Sponsors } from "./collections/Sponsors";
 import { Users } from "./collections/Users";
+import { SiteConfig } from "./globals/SiteConfig";
 import { migrations } from "./migrations";
 
 const filename = fileURLToPath(import.meta.url);
@@ -19,7 +28,19 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media],
+  collections: [
+    Users,
+    Media,
+    News,
+    Guests,
+    Sponsors,
+    Events,
+    Exhibitions,
+    FoodVendors,
+    GoodsVendors,
+    CorporateBooths,
+  ],
+  globals: [SiteConfig],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || "",
   typescript: {

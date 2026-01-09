@@ -69,6 +69,14 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    news: News;
+    guests: Guest;
+    sponsors: Sponsor;
+    events: Event;
+    exhibitions: Exhibition;
+    'food-vendors': FoodVendor;
+    'goods-vendors': GoodsVendor;
+    'corporate-booths': CorporateBooth;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,6 +86,14 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    news: NewsSelect<false> | NewsSelect<true>;
+    guests: GuestsSelect<false> | GuestsSelect<true>;
+    sponsors: SponsorsSelect<false> | SponsorsSelect<true>;
+    events: EventsSelect<false> | EventsSelect<true>;
+    exhibitions: ExhibitionsSelect<false> | ExhibitionsSelect<true>;
+    'food-vendors': FoodVendorsSelect<false> | FoodVendorsSelect<true>;
+    'goods-vendors': GoodsVendorsSelect<false> | GoodsVendorsSelect<true>;
+    'corporate-booths': CorporateBoothsSelect<false> | CorporateBoothsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -87,8 +103,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-config': SiteConfig;
+  };
+  globalsSelect: {
+    'site-config': SiteConfigSelect<false> | SiteConfigSelect<true>;
+  };
   locale: null;
   user: User & {
     collection: 'users';
@@ -161,6 +181,242 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news".
+ */
+export interface News {
+  id: number;
+  title: string;
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  publishedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "guests".
+ */
+export interface Guest {
+  id: number;
+  name: string;
+  image?: (number | null) | Media;
+  profile?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  eventInfo?: {
+    title?: string | null;
+    date?: string | null;
+    time?: string | null;
+    location?: string | null;
+  };
+  /**
+   * 配布場所・時間・ルールなど
+   */
+  ticketInfo?: string | null;
+  /**
+   * 撮影・録音・持ち込みなどの注意事項
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sponsors".
+ */
+export interface Sponsor {
+  id: number;
+  name: string;
+  logo?: (number | null) | Media;
+  url?: string | null;
+  tier?: ('platinum' | 'gold' | 'silver' | 'general') | null;
+  /**
+   * 小さい数値ほど先に表示
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: number;
+  title: string;
+  image?: (number | null) | Media;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  tags?: ('kids' | 'stage' | 'indoor' | 'outdoor' | 'day1' | 'day2')[] | null;
+  schedule?: {
+    sunnyStart?: string | null;
+    sunnyEnd?: string | null;
+    rainyStart?: string | null;
+    rainyEnd?: string | null;
+  };
+  location?: string | null;
+  applicationUrl?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exhibitions".
+ */
+export interface Exhibition {
+  id: number;
+  title: string;
+  image?: (number | null) | Media;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  tags?: ('kids' | 'display' | 'experience' | 'lab' | 'corporate' | 'student')[] | null;
+  location?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "food-vendors".
+ */
+export interface FoodVendor {
+  id: number;
+  name: string;
+  image?: (number | null) | Media;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  menu?:
+    | {
+        item: string;
+        price?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  tags?: ('food' | 'sweets' | 'alcohol' | 'food-truck')[] | null;
+  location?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "goods-vendors".
+ */
+export interface GoodsVendor {
+  id: number;
+  name: string;
+  image?: (number | null) | Media;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  tags?: ('flea-market' | 'goods' | 'corporate' | 'student')[] | null;
+  location?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "corporate-booths".
+ */
+export interface CorporateBooth {
+  id: number;
+  companyName: string;
+  image?: (number | null) | Media;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  location?: ('al1' | 'egg') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -190,6 +446,38 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'news';
+        value: number | News;
+      } | null)
+    | ({
+        relationTo: 'guests';
+        value: number | Guest;
+      } | null)
+    | ({
+        relationTo: 'sponsors';
+        value: number | Sponsor;
+      } | null)
+    | ({
+        relationTo: 'events';
+        value: number | Event;
+      } | null)
+    | ({
+        relationTo: 'exhibitions';
+        value: number | Exhibition;
+      } | null)
+    | ({
+        relationTo: 'food-vendors';
+        value: number | FoodVendor;
+      } | null)
+    | ({
+        relationTo: 'goods-vendors';
+        value: number | GoodsVendor;
+      } | null)
+    | ({
+        relationTo: 'corporate-booths';
+        value: number | CorporateBooth;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -275,6 +563,131 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news_select".
+ */
+export interface NewsSelect<T extends boolean = true> {
+  title?: T;
+  content?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "guests_select".
+ */
+export interface GuestsSelect<T extends boolean = true> {
+  name?: T;
+  image?: T;
+  profile?: T;
+  eventInfo?:
+    | T
+    | {
+        title?: T;
+        date?: T;
+        time?: T;
+        location?: T;
+      };
+  ticketInfo?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sponsors_select".
+ */
+export interface SponsorsSelect<T extends boolean = true> {
+  name?: T;
+  logo?: T;
+  url?: T;
+  tier?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events_select".
+ */
+export interface EventsSelect<T extends boolean = true> {
+  title?: T;
+  image?: T;
+  description?: T;
+  tags?: T;
+  schedule?:
+    | T
+    | {
+        sunnyStart?: T;
+        sunnyEnd?: T;
+        rainyStart?: T;
+        rainyEnd?: T;
+      };
+  location?: T;
+  applicationUrl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exhibitions_select".
+ */
+export interface ExhibitionsSelect<T extends boolean = true> {
+  title?: T;
+  image?: T;
+  description?: T;
+  tags?: T;
+  location?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "food-vendors_select".
+ */
+export interface FoodVendorsSelect<T extends boolean = true> {
+  name?: T;
+  image?: T;
+  description?: T;
+  menu?:
+    | T
+    | {
+        item?: T;
+        price?: T;
+        id?: T;
+      };
+  tags?: T;
+  location?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "goods-vendors_select".
+ */
+export interface GoodsVendorsSelect<T extends boolean = true> {
+  name?: T;
+  image?: T;
+  description?: T;
+  tags?: T;
+  location?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "corporate-booths_select".
+ */
+export interface CorporateBoothsSelect<T extends boolean = true> {
+  companyName?: T;
+  image?: T;
+  description?: T;
+  location?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -312,6 +725,72 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-config".
+ */
+export interface SiteConfig {
+  id: number;
+  siteName: string;
+  logo?: (number | null) | Media;
+  heroImage?: (number | null) | Media;
+  eventDates?: {
+    day1?: string | null;
+    day2?: string | null;
+  };
+  address?: string | null;
+  socialLinks?:
+    | {
+        platform?: ('twitter' | 'instagram' | 'facebook') | null;
+        url?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  footerLinks?:
+    | {
+        label?: string | null;
+        url?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  copyright?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-config_select".
+ */
+export interface SiteConfigSelect<T extends boolean = true> {
+  siteName?: T;
+  logo?: T;
+  heroImage?: T;
+  eventDates?:
+    | T
+    | {
+        day1?: T;
+        day2?: T;
+      };
+  address?: T;
+  socialLinks?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
+  footerLinks?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
+  copyright?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
