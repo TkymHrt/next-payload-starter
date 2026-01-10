@@ -1,3 +1,28 @@
+# 環境構築（mise）
+
+このプロジェクトは **mise** を使用してbunとnodeのバージョンを管理しています。`.mise.toml`に定義されたバージョンが自動的に使用されます。
+
+## bunやnodeが実行できない場合
+
+`bun`や`node`コマンドが見つからない、またはバージョンが異なる場合は、以下を実行してください：
+
+```bash
+mise trust   # プロジェクトの.mise.tomlを信頼する（初回のみ）
+mise install # 必要なツールをインストール
+```
+
+miseがインストールされていない場合は、[mise公式サイト](https://mise.jdx.dev/)を参照してインストールしてください。
+
+## 開発タスク
+
+mise経由で開発タスクを実行できます：
+
+- `mise run dev` - 開発サーバーを起動
+- `mise run check` - 環境検証（Docker、設定ファイル）
+- `mise run install` - 依存関係のインストール
+
+---
+
 # ExecPlans
  
 When writing complex features or significant refactors, use an ExecPlan (as described in .agent/PLANS.md) from design to implementation.
@@ -8,9 +33,9 @@ This project uses **Ultracite**, a zero-config Biome preset that enforces strict
 
 ## Quick Reference
 
-- **Format code**: `npx ultracite fix`
-- **Check for issues**: `npx ultracite check`
-- **Diagnose setup**: `npx ultracite doctor`
+- **Format code**: `bun x ultracite fix`
+- **Check for issues**: `bun x ultracite check`
+- **Diagnose setup**: `bun x ultracite doctor`
 
 Biome (the underlying engine) provides extremely fast Rust-based linting and formatting. Most issues are automatically fixable.
 
@@ -124,4 +149,4 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 
 ---
 
-Most formatting and common issues are automatically fixed by Biome. Run `npx ultracite fix` before committing to ensure compliance.
+Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
