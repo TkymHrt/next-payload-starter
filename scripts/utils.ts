@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { $ } from "bun";
 
@@ -96,8 +97,21 @@ export async function checkCompose() {
   }
 }
 
+export function fileExists(filePath: string): boolean {
+  return existsSync(filePath);
+}
+
 export function promptConfirmation(message: string): Promise<boolean> {
   return new Promise((resolve) => {
+    if (!process.stdin.isTTY) {
+      printWarning(`警告: ${message}`);
+      printWarning(
+        "非対話環境のため確認できません。安全のためキャンセルします"
+      );
+      resolve(false);
+      return;
+    }
+
     const rl = createInterface({
       input: process.stdin,
       output: process.stdout,

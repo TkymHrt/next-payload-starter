@@ -1,5 +1,3 @@
-# Production Compose File - Manual/Local Deployment
-
 services:
   payload:
     build:

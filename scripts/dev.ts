@@ -12,6 +12,8 @@ async function main() {
     "DockerコンテナとNext.jsサーバーを立ち上げます"
   );
 
+  let exitCodeToPropagate: number | undefined;
+
   printProgress("コンテナ起動中...");
   await $`docker compose up -d`;
 
@@ -29,11 +31,27 @@ async function main() {
     if (!isNormalExit) {
       printError("Dev Server", "サーバーが予期せず停止しました");
       console.error(err);
+      exitCodeToPropagate = exitCode ?? 1;
     }
   } finally {
     printProgress("コンテナ停止中...");
-    await $`docker compose stop`;
-    printSuccessBanner("開発環境を停止しました");
+    try {
+      await $`docker compose stop`;
+    } catch (error) {
+      printError("Docker Compose", "コンテナ停止に失敗しました");
+      console.error(error);
+      if (exitCodeToPropagate === undefined) {
+        exitCodeToPropagate = 1;
+      }
+    }
+
+    if (exitCodeToPropagate === undefined) {
+      printSuccessBanner("開発環境を停止しました");
+    }
+  }
+
+  if (exitCodeToPropagate !== undefined) {
+    process.exitCode = exitCodeToPropagate;
   }
 }
 
