@@ -1,4 +1,4 @@
-FROM node:24.11.1-trixie-slim AS node-base
+FROM node:25.5.0-trixie-slim AS node-base
 
 FROM node-base AS base
 
